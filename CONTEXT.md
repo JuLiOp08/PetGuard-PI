@@ -1,0 +1,53 @@
+# PetGuard
+
+PetGuard organiza la identificación, las ubicaciones conocidas y la búsqueda de mascotas extraviadas. El contexto cubre desde el registro de una mascota hasta el cierre de su caso de búsqueda.
+
+## Personas y animales
+
+**Propietario**:
+Persona responsable de una o más mascotas y de gestionar su información y sus casos de búsqueda.
+_Avoid_: Usuario, dueño, cliente
+
+**Perfil local**:
+Identidad y datos de contacto del propietario que utiliza PetGuard en un dispositivo.
+_Avoid_: Cuenta, usuario
+
+**Mascota**:
+Perro o gato identificado por el propietario y sujeto de ubicaciones y casos de búsqueda.
+_Avoid_: Animal, dispositivo
+
+## Localización
+
+**Ubicación**:
+Punto geográfico conocido de una mascota, acompañado por su momento de registro y el origen del dato.
+_Avoid_: Posición en tiempo real
+
+**Última ubicación conocida**:
+Ubicación válida más reciente de una mascota; es una referencia para la búsqueda, no una posición actual garantizada.
+_Avoid_: Ubicación actual, ubicación en tiempo real
+
+## Búsqueda
+
+**Alerta de extravío**:
+Registro que declara a una mascota como extraviada y reúne la información utilizada para buscarla.
+_Avoid_: Difusión pública, notificación externa
+
+**Caso de búsqueda**:
+Seguimiento de una alerta de extravío desde su activación hasta su resolución o cancelación, incluidos sus avistamientos.
+_Avoid_: Incidente, ticket
+
+**Avistamiento**:
+Reporte de una posible observación de la mascota asociado a un caso de búsqueda; su nivel de confianza no confirma la identidad.
+_Avoid_: Ubicación confirmada, hallazgo
+
+**Hallazgo**:
+Confirmación de que la mascota fue encontrada y de que su caso de búsqueda puede resolverse.
+_Avoid_: Avistamiento
+
+**Aviso interno**:
+Mensaje dentro de PetGuard que informa al propietario sobre un evento relevante.
+_Avoid_: Notificación push, alerta de extravío
+
+**Respaldo**:
+Copia portable de los datos del propietario utilizada para conservarlos o restaurarlos.
+_Avoid_: Sincronización, copia en la nube
