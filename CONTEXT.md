@@ -16,6 +16,18 @@ _Avoid_: Cuenta, usuario
 Perro o gato identificado por el propietario y sujeto de ubicaciones y casos de búsqueda.
 _Avoid_: Animal, dispositivo
 
+**Ficha de mascota**:
+Conjunto de datos principales y opcionales que identifican a una mascota, incluida su fotografía de referencia.
+_Avoid_: Perfil de mascota, registro del animal
+
+**Información relevante**:
+Datos opcionales que el propietario considera útiles para identificar o cuidar a una mascota y que no pertenecen a sus datos principales.
+_Avoid_: Señas particulares, comportamiento, instrucciones de acercamiento
+
+**Condición**:
+Dato opcional sobre el estado físico o médico de una mascota que conviene conocer para su cuidado.
+_Avoid_: Diagnóstico
+
 ## Localización
 
 **Ubicación**:

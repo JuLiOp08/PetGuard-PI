@@ -72,9 +72,18 @@ test('validateProfileInput exige alias y valida el correo', () => {
 
 test('validatePetInput protege la ficha mínima de identificación', () => {
   assert.throws(() => validatePetInput({ name: 'Luna', species: 'dog' }), /color/);
-  const pet = validatePetInput({ name: 'Luna', species: 'dog', color: 'Marrón', size: 'medium', description: 'Pecho blanco' });
+  const pet = validatePetInput({
+    name: 'Luna', species: 'dog', color: 'Marrón', size: 'medium',
+    condition: 'Esterilizada', relevantInformation: 'Pecho blanco', photo: 'data:image/jpeg;base64,AA=='
+  });
   assert.equal(pet.name, 'Luna');
   assert.equal(pet.size, 'medium');
+  assert.equal(pet.condition, 'Esterilizada');
+  assert.equal(pet.relevantInformation, 'Pecho blanco');
+  assert.equal(pet.photo, 'data:image/jpeg;base64,AA==');
+  assert.throws(() => validatePetInput({
+    name: 'Luna', species: 'dog', color: 'Marrón', size: 'medium', photo: 'data:text/html;base64,PHNjcmlwdD4='
+  }), /foto/i);
 });
 
 test('validateLocationInput normaliza una ubicación manual', () => {

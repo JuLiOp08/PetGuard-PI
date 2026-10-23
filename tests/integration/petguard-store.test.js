@@ -28,7 +28,8 @@ test('un respaldo con historial huérfano se rechaza y conserva los datos actual
     species: 'dog',
     color: 'Marrón',
     size: 'medium',
-    description: 'Oreja derecha doblada'
+    relevantInformation: 'Oreja derecha doblada',
+    photo: 'data:image/jpeg;base64,AA=='
   });
 
   const invalidBackup = {
@@ -50,6 +51,7 @@ test('un respaldo con historial huérfano se rechaza y conserva los datos actual
   assert.equal(current.profile.alias, 'Perfil vigente');
   assert.equal(current.pets.length, 1);
   assert.equal(current.pets[0].name, 'Luna');
+  assert.equal(current.pets[0].photo, 'data:image/jpeg;base64,AA==');
   assert.equal((await exportAllData()).version, 2);
 });
 
@@ -59,7 +61,7 @@ test('un avistamiento conserva un estado de revisión válido', async () => {
     species: 'cat',
     color: 'Blanco',
     size: 'small',
-    description: 'Cola gris'
+    relevantInformation: 'Cola gris'
   });
   const alert = await createAlert({
     petId: pet.id,
@@ -90,7 +92,7 @@ test('un respaldo con identificadores duplicados se rechaza sin perder datos', a
     species: 'dog',
     color: 'Dorado',
     size: 'medium',
-    description: 'Pañuelo azul',
+    relevantInformation: 'Pañuelo azul',
     status: 'safe'
   };
   const invalidBackup = {
@@ -113,7 +115,7 @@ test('un respaldo con identificadores duplicados se rechaza sin perder datos', a
 test('el ciclo del caso de búsqueda se respalda y se elimina en cascada', async () => {
   await saveProfile({ alias: 'Familia Rivera', acceptsLocalStorage: true });
   const pet = await savePet({
-    name: 'Milo', species: 'dog', color: 'Negro', size: 'large', description: 'Pecho blanco'
+    name: 'Milo', species: 'dog', color: 'Negro', size: 'large', relevantInformation: 'Pecho blanco'
   });
   await saveLocation({
     petId: pet.id,

@@ -53,6 +53,11 @@ export function savePet(pet) {
       createdAt: previous?.createdAt || now(),
       updatedAt: now()
     };
+    delete record.description;
+    delete record.distinctiveFeatures;
+    delete record.behavior;
+    delete record.approachInstructions;
+    delete record.medicalNotes;
     await put(tx, 'pets', record);
     if (!previous) {
       await put(tx, 'notifications', notification({

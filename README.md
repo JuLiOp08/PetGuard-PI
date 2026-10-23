@@ -45,7 +45,7 @@ npm run test:integration
 
 1. Abrir http://localhost:4173/
 2. Crear el perfil local.
-3. Registrar una mascota con su descripción identificativa.
+3. Registrar una mascota y, si se desea, añadir una foto e información complementaria.
 4. Añadir una ubicación conocida desde Mascotas o Ubicaciones.
 5. Activar una alerta de extravío.
 6. Registrar y revisar un avistamiento.
@@ -58,7 +58,7 @@ npm run test:integration
 - Registro y eliminación de mascotas.
 - Registro manual de ubicaciones conocidas con validación de coordenadas.
 - Última ubicación por mascota con estado reciente/intermedia/antigua.
-- Fichas editables de identificación y cuidados de mascotas.
+- Fichas editables con foto, datos principales e información complementaria de mascotas.
 - Casos de búsqueda con alerta, historial y resolución.
 - Avistamientos con confianza, revisión y distancia de referencia.
 - Centro de avisos con lectura y eliminación.

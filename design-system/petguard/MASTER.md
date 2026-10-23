@@ -12,6 +12,7 @@ Dirección visual para una aplicación de cuidado y búsqueda de mascotas: calma
 - Respetar `prefers-reduced-motion` y utilizar movimiento sutil.
 - Mantener descripciones en una frase breve y evitar repetir el título de la sección.
 - Mostrar primero los campos imprescindibles y agrupar los detalles opcionales bajo divulgación progresiva.
+- Permitir elegir y previsualizar la foto de una mascota antes de guardar, con una acción visible para quitarla.
 - Usar estados vacíos con una acción clara sólo cuando pueda ejecutarse de inmediato.
 
 ## Tokens principales

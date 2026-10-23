@@ -14,7 +14,7 @@ const state = { profile: null, pets: [], locations: [], alerts: [], alertEvents:
 const labels = {
   dog: 'Perro', cat: 'Gato', small: 'Pequeño', medium: 'Mediano', large: 'Grande', safe: 'Segura',
   lost: 'Extraviada', found: 'Encontrada', active: 'Activa', paused: 'Pausada', resolved: 'Resuelta',
-  cancelled: 'Cancelada', low: 'Baja', high: 'Alta', normal: 'Normal', new: 'Nuevo',
+  cancelled: 'Cancelada', female: 'Hembra', male: 'Macho', low: 'Baja', high: 'Alta', normal: 'Normal', new: 'Nuevo',
   in_review: 'En revisión', relevant: 'Relevante', discarded: 'Descartado'
 };
 
@@ -23,6 +23,19 @@ const label = (value) => labels[value] || value || 'Sin datos';
 const confidenceLabel = (value) => ({ low: 'Baja', medium: 'Media', high: 'Alta' })[value] || value;
 const formatDate = (value) => value ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Sin fecha';
 const inputDate = (date = new Date()) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+const safePhoto = (value = '') => /^data:image\/(?:jpeg|png|webp);base64,/i.test(value) ? value : '';
+
+function petRelevantInformation(pet = {}) {
+  if (pet.relevantInformation) return pet.relevantInformation;
+  return [pet.description, pet.distinctiveFeatures, pet.behavior, pet.approachInstructions].filter(Boolean).join('\n');
+}
+
+function petPortrait(pet, size = '', meaningful = false) {
+  const photo = safePhoto(pet.photo);
+  const classes = `pet-avatar${size ? ` pet-avatar--${size}` : ''}`;
+  if (photo) return `<img class="${classes}" src="${escapeHtml(photo)}" alt="${meaningful ? `Foto de ${escapeHtml(pet.name)}` : ''}" width="78" height="78">`;
+  return `<span class="${classes}" aria-hidden="true">${pet.species === 'cat' ? 'G' : 'P'}</span>`;
+}
 
 function icon(name) {
   const paths = {
@@ -84,7 +97,7 @@ function renderOnboarding() {
 
 function petCard(pet) {
   const location = latestLocation(pet.id);
-  return `<article class="pet-card"><a class="pet-card__main" href="#/pets/${encodeURIComponent(pet.id)}"><span class="pet-avatar" aria-hidden="true">${pet.species === 'cat' ? 'G' : 'P'}</span><div><div class="pet-card__title"><h3>${escapeHtml(pet.name)}</h3>${statusBadge(pet.status)}</div><p>${escapeHtml(label(pet.species))} · ${escapeHtml(pet.color)}</p><small>${location ? `${icon('pin')} ${formatRelativeTime(location.recordedAt)}` : 'Sin ubicación registrada'}</small></div></a><a class="card-arrow" href="#/pets/${encodeURIComponent(pet.id)}" aria-label="Ver ficha de ${escapeHtml(pet.name)}">${icon('arrow')}</a></article>`;
+  return `<article class="pet-card"><a class="pet-card__main" href="#/pets/${encodeURIComponent(pet.id)}">${petPortrait(pet)}<div><div class="pet-card__title"><h3>${escapeHtml(pet.name)}</h3>${statusBadge(pet.status)}</div><p>${escapeHtml(label(pet.species))} · ${escapeHtml(pet.color)}</p><small>${location ? `${icon('pin')} ${formatRelativeTime(location.recordedAt)}` : 'Sin ubicación registrada'}</small></div></a><a class="card-arrow" href="#/pets/${encodeURIComponent(pet.id)}" aria-label="Ver ficha de ${escapeHtml(pet.name)}">${icon('arrow')}</a></article>`;
 }
 
 function locationRow(location) {
@@ -102,7 +115,7 @@ function renderHome() {
 }
 
 function renderPets() {
-  shell(`<div class="page-head"><div><p class="eyebrow">Identificación y cuidados</p><h2>Mascotas registradas</h2><p>Datos útiles para reconocerlas y cuidarlas.</p></div><button class="button button--primary" data-action="new-pet">${icon('plus')} Nueva mascota</button></div><div class="pet-grid pet-grid--wide">${state.pets.map(petCard).join('') || emptyState('Aún no hay mascotas', 'Crea una ficha con sus rasgos principales.')}</div>`, 'Mascotas', 'pets');
+  shell(`<div class="page-head"><div><p class="eyebrow">Identificación y cuidados</p><h2>Mascotas registradas</h2><p>Información importante para mantener organizada su ficha.</p></div><button class="button button--primary" data-action="new-pet">${icon('plus')} Nueva mascota</button></div><div class="pet-grid pet-grid--wide">${state.pets.map(petCard).join('') || emptyState('Aún no hay mascotas', 'Crea una ficha con sus datos principales.')}</div>`, 'Mascotas', 'pets');
 }
 
 function renderPetDetail(id) {
@@ -111,9 +124,9 @@ function renderPetDetail(id) {
   const locations = state.locations.filter((item) => item.petId === id).sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt));
   const alerts = state.alerts.filter((item) => item.petId === id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const active = alerts.find((item) => item.status === 'active');
-  const optionalDetails = [['Raza', pet.breed], ['Señas particulares', pet.distinctiveFeatures], ['Comportamiento', pet.behavior], ['Cuidados médicos', pet.medicalNotes], ['Cómo acercarse', pet.approachInstructions]].filter(([, value]) => value);
-  shell(`<a class="back-link" href="#/pets">${icon('back')} Volver a mascotas</a><section class="profile-hero"><span class="pet-avatar pet-avatar--large" aria-hidden="true">${pet.species === 'cat' ? 'G' : 'P'}</span><div><div class="profile-hero__title"><h2>${escapeHtml(pet.name)}</h2>${statusBadge(pet.status)}</div><p>${escapeHtml(label(pet.species))} · ${escapeHtml(label(pet.size))} · ${escapeHtml(pet.color)}</p></div><div class="profile-hero__actions"><button class="button button--secondary" data-action="edit-pet" data-id="${escapeHtml(pet.id)}">Editar ficha</button>${active ? `<a class="button button--danger" href="#/alerts/${encodeURIComponent(active.id)}">Ver alerta</a>` : `<button class="button button--danger" data-action="new-alert" data-pet-id="${escapeHtml(pet.id)}">Reportar extravío</button>`}</div></section>
-    <div class="detail-grid"><section class="panel"><div class="section-head"><h3>Identificación</h3></div><dl class="data-list"><div><dt>Descripción</dt><dd>${escapeHtml(pet.description)}</dd></div>${optionalDetails.map(([term, value]) => `<div><dt>${term}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>${optionalDetails.length ? '' : '<p class="panel-note">Puedes añadir raza, señas y cuidados al editar la ficha.</p>'}</section><section class="panel"><div class="section-head"><div><h3>Ubicaciones conocidas</h3><p>Referencias manuales, no seguimiento en tiempo real.</p></div><button class="text-button" data-action="new-location" data-pet-id="${escapeHtml(pet.id)}">Añadir ${icon('plus')}</button></div><div class="timeline">${locations.slice(0, 6).map(locationRow).join('') || emptyState('Sin ubicaciones', 'Registra dónde estuvo esta mascota.', '', 'pin')}</div></section></div>
+  const optionalDetails = [['Raza', pet.breed], ['Sexo', pet.sex ? label(pet.sex) : ''], ['Condición', pet.condition || pet.medicalNotes], ['Información relevante', petRelevantInformation(pet)]].filter(([, value]) => value);
+  shell(`<a class="back-link" href="#/pets">${icon('back')} Volver a mascotas</a><section class="profile-hero">${petPortrait(pet, 'large', true)}<div><div class="profile-hero__title"><h2>${escapeHtml(pet.name)}</h2>${statusBadge(pet.status)}</div><p>${escapeHtml(label(pet.species))} · ${escapeHtml(label(pet.size))} · ${escapeHtml(pet.color)}</p></div><div class="profile-hero__actions"><button class="button button--secondary" data-action="edit-pet" data-id="${escapeHtml(pet.id)}">Editar ficha</button>${active ? `<a class="button button--danger" href="#/alerts/${encodeURIComponent(active.id)}">Ver alerta</a>` : `<button class="button button--danger" data-action="new-alert" data-pet-id="${escapeHtml(pet.id)}">Reportar extravío</button>`}</div></section>
+    <div class="detail-grid"><section class="panel"><div class="section-head"><h3>Información de la mascota</h3></div>${optionalDetails.length ? `<dl class="data-list">${optionalDetails.map(([term, value]) => `<div><dt>${term}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>` : '<p class="panel-note">Puedes añadir raza, sexo, condición e información relevante al editar la ficha.</p>'}</section><section class="panel"><div class="section-head"><div><h3>Ubicaciones conocidas</h3><p>Referencias manuales, no seguimiento en tiempo real.</p></div><button class="text-button" data-action="new-location" data-pet-id="${escapeHtml(pet.id)}">Añadir ${icon('plus')}</button></div><div class="timeline">${locations.slice(0, 6).map(locationRow).join('') || emptyState('Sin ubicaciones', 'Registra dónde estuvo esta mascota.', '', 'pin')}</div></section></div>
     <section class="danger-zone"><div><h3>Eliminar ficha</h3><p>También se eliminarán sus ubicaciones, alertas y avistamientos.</p></div><button class="button button--danger-outline" data-action="delete-pet" data-id="${escapeHtml(pet.id)}">Eliminar mascota</button></section>`, pet.name, 'pets');
 }
 
@@ -176,8 +189,14 @@ function render() {
 }
 
 function petForm(pet = {}) {
-  const hasOptionalDetails = ['breed', 'sex', 'distinctiveFeatures', 'behavior', 'medicalNotes', 'approachInstructions'].some((key) => pet[key]);
-  return `<form id="pet-form" data-id="${escapeHtml(pet.id || '')}" novalidate><div class="form-error" role="alert" tabindex="-1" hidden></div><p class="required-note"><span aria-hidden="true">*</span> Campos obligatorios</p><fieldset class="form-section"><legend>Datos principales</legend><div class="field-grid"><label class="field"><span>Nombre <b aria-hidden="true">*</b></span><input name="name" value="${escapeHtml(pet.name || '')}" maxlength="60" autocomplete="off" required><small class="field-error" data-error-for="name"></small></label><label class="field"><span>Especie <b aria-hidden="true">*</b></span><select name="species"><option value="dog" ${pet.species !== 'cat' ? 'selected' : ''}>Perro</option><option value="cat" ${pet.species === 'cat' ? 'selected' : ''}>Gato</option></select></label></div><div class="field-grid"><label class="field"><span>Color principal <b aria-hidden="true">*</b></span><input name="color" value="${escapeHtml(pet.color || '')}" required><small class="field-error" data-error-for="color"></small></label><label class="field"><span>Tamaño <b aria-hidden="true">*</b></span><select name="size"><option value="small" ${pet.size === 'small' ? 'selected' : ''}>Pequeño</option><option value="medium" ${!pet.size || pet.size === 'medium' ? 'selected' : ''}>Mediano</option><option value="large" ${pet.size === 'large' ? 'selected' : ''}>Grande</option></select></label></div><label class="field"><span>Cómo reconocerla <b aria-hidden="true">*</b></span><textarea name="description" rows="3" required>${escapeHtml(pet.description || '')}</textarea><small class="field-hint">Describe sus rasgos más visibles.</small><small class="field-error" data-error-for="description"></small></label></fieldset><details class="form-disclosure" ${hasOptionalDetails ? 'open' : ''}><summary>Más información <span>Opcional</span></summary><div class="form-disclosure__body"><div class="field-grid"><label class="field"><span>Raza</span><input name="breed" value="${escapeHtml(pet.breed || '')}"></label><label class="field"><span>Sexo</span><select name="sex"><option value="">No especificado</option><option value="female" ${pet.sex === 'female' ? 'selected' : ''}>Hembra</option><option value="male" ${pet.sex === 'male' ? 'selected' : ''}>Macho</option></select></label></div><label class="field"><span>Señas particulares</span><textarea name="distinctiveFeatures" rows="2">${escapeHtml(pet.distinctiveFeatures || '')}</textarea></label><label class="field"><span>Comportamiento</span><textarea name="behavior" rows="2">${escapeHtml(pet.behavior || '')}</textarea></label><label class="field"><span>Condición médica relevante</span><textarea name="medicalNotes" rows="2">${escapeHtml(pet.medicalNotes || '')}</textarea></label><label class="field"><span>Cómo acercarse</span><textarea name="approachInstructions" rows="2">${escapeHtml(pet.approachInstructions || '')}</textarea></label></div></details><div class="dialog-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancelar</button><button class="button button--primary" type="submit">Guardar mascota</button></div></form>`;
+  const photo = safePhoto(pet.photo);
+  const relevantInformation = petRelevantInformation(pet);
+  const condition = pet.condition || pet.medicalNotes || '';
+  const hasOptionalDetails = Boolean(pet.breed || pet.sex || condition || relevantInformation);
+  const preview = photo
+    ? `<img src="${escapeHtml(photo)}" alt="Vista previa de la foto de ${escapeHtml(pet.name || 'la mascota')}" width="112" height="112">`
+    : `<span aria-hidden="true">${icon('pets')}</span><small>Sin foto</small>`;
+  return `<form id="pet-form" data-id="${escapeHtml(pet.id || '')}" novalidate><div class="form-error" role="alert" tabindex="-1" hidden></div><p class="required-note"><span aria-hidden="true">*</span> Campos obligatorios</p><fieldset class="form-section"><legend>Datos principales</legend><div class="pet-photo-field"><div class="pet-photo-preview${photo ? ' has-photo' : ''}" data-photo-preview>${preview}</div><div class="pet-photo-actions"><span class="field-label">Foto <em>Opcional</em></span><label class="button button--secondary file-button">${icon('upload')} Elegir de la galería<input id="pet-photo-input" name="photoFile" type="file" accept="image/*"></label><button class="text-button" type="button" data-action="remove-pet-photo" ${photo ? '' : 'hidden'}>Quitar foto</button><small class="field-hint">Elige una imagen de hasta 12 MB. Se optimiza antes de guardarse en este dispositivo.</small><small class="field-error" data-error-for="photoFile"></small><input type="hidden" name="photo" value="${escapeHtml(photo)}"></div></div><div class="field-grid"><label class="field"><span>Nombre <b aria-hidden="true">*</b></span><input name="name" value="${escapeHtml(pet.name || '')}" maxlength="60" autocomplete="off" required><small class="field-error" data-error-for="name"></small></label><label class="field"><span>Especie <b aria-hidden="true">*</b></span><select name="species"><option value="dog" ${pet.species !== 'cat' ? 'selected' : ''}>Perro</option><option value="cat" ${pet.species === 'cat' ? 'selected' : ''}>Gato</option></select></label></div><div class="field-grid"><label class="field"><span>Color principal <b aria-hidden="true">*</b></span><input name="color" value="${escapeHtml(pet.color || '')}" maxlength="60" required><small class="field-error" data-error-for="color"></small></label><label class="field"><span>Tamaño <b aria-hidden="true">*</b></span><select name="size"><option value="small" ${pet.size === 'small' ? 'selected' : ''}>Pequeño</option><option value="medium" ${!pet.size || pet.size === 'medium' ? 'selected' : ''}>Mediano</option><option value="large" ${pet.size === 'large' ? 'selected' : ''}>Grande</option></select></label></div></fieldset><details class="form-disclosure" ${hasOptionalDetails ? 'open' : ''}><summary>Más información <span>Opcional</span></summary><div class="form-disclosure__body"><div class="field-grid"><label class="field"><span>Raza</span><input name="breed" value="${escapeHtml(pet.breed || '')}" maxlength="80"></label><label class="field"><span>Sexo</span><select name="sex"><option value="">No especificado</option><option value="female" ${pet.sex === 'female' ? 'selected' : ''}>Hembra</option><option value="male" ${pet.sex === 'male' ? 'selected' : ''}>Macho</option></select></label></div><label class="field"><span>Condición</span><textarea name="condition" rows="2" maxlength="500">${escapeHtml(condition)}</textarea><small class="field-hint">Por ejemplo: esterilizada, alergias o una condición médica.</small></label><label class="field"><span>Información relevante</span><textarea name="relevantInformation" rows="3" maxlength="1000">${escapeHtml(relevantInformation)}</textarea><small class="field-hint">Añade cualquier dato que ayude a identificarla o cuidarla.</small></label></div></details><div class="dialog-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancelar</button><button class="button button--primary" type="submit">Guardar mascota</button></div></form>`;
 }
 
 function locationForm(selectedPetId = '') {
@@ -219,6 +238,43 @@ function openDialog(title, body) {
 }
 
 function values(form) { return Object.fromEntries(new FormData(form).entries()); }
+
+function loadImage(source) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new ValidationError('No pudimos leer esta imagen. Elige otra foto.', 'photoFile'));
+    image.src = source;
+  });
+}
+
+async function optimizePetPhoto(file) {
+  if (!file.type.startsWith('image/')) {
+    throw new ValidationError('El archivo seleccionado debe ser una imagen.', 'photoFile');
+  }
+  if (file.size > 12 * 1024 * 1024) {
+    throw new ValidationError('La foto supera 12 MB. Elige una imagen más liviana.', 'photoFile');
+  }
+  const source = URL.createObjectURL(file);
+  try {
+    const image = await loadImage(source);
+    const maxDimension = 1024;
+    const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', .82);
+  } finally {
+    URL.revokeObjectURL(source);
+  }
+}
+
 function showFormError(form, error) {
   form.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.removeAttribute('aria-invalid'));
   form.querySelectorAll('.field-error').forEach((node) => { node.textContent = ''; });
@@ -234,6 +290,15 @@ document.addEventListener('click', async (event) => {
   const action = button.dataset.action;
   try {
     if (action === 'close-dialog') return button.closest('dialog')?.close();
+    if (action === 'remove-pet-photo') {
+      const form = button.closest('#pet-form');
+      form.elements.photo.value = '';
+      form.elements.photoFile.value = '';
+      form.querySelector('[data-photo-preview]').classList.remove('has-photo');
+      form.querySelector('[data-photo-preview]').innerHTML = `<span aria-hidden="true">${icon('pets')}</span><small>Sin foto</small>`;
+      button.hidden = true;
+      return;
+    }
     if (action === 'new-pet') return openDialog('Registrar mascota', petForm());
     if (action === 'edit-pet') return openDialog('Editar mascota', petForm(state.pets.find((pet) => pet.id === button.dataset.id)));
     if (action === 'new-location') { if (!state.pets.length) return openDialog('Primero registra una mascota', '<p class="muted">Las ubicaciones siempre pertenecen a una mascota.</p><div class="dialog-actions"><button class="button button--primary" data-action="new-pet">Registrar mascota</button></div>'); return openDialog('Añadir ubicación conocida', locationForm(button.dataset.petId)); }
@@ -269,7 +334,28 @@ document.addEventListener('submit', async (event) => {
 });
 
 document.addEventListener('change', async (event) => {
-  if (event.target.id !== 'import-file') return; const file = event.target.files?.[0]; if (!file) return;
+  if (event.target.id === 'pet-photo-input') {
+    const input = event.target;
+    const form = input.closest('#pet-form');
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const photo = await optimizePetPhoto(file);
+      form.elements.photo.value = photo;
+      const preview = form.querySelector('[data-photo-preview]');
+      preview.classList.add('has-photo');
+      preview.innerHTML = `<img src="${escapeHtml(photo)}" alt="Vista previa de la foto seleccionada" width="112" height="112">`;
+      form.querySelector('[data-action="remove-pet-photo"]').hidden = false;
+      form.querySelector('[data-error-for="photoFile"]').textContent = '';
+      input.removeAttribute('aria-invalid');
+    } catch (error) {
+      input.value = '';
+      showFormError(form, error);
+    }
+    return;
+  }
+  if (event.target.id !== 'import-file') return;
+  const file = event.target.files?.[0]; if (!file) return;
   try { const payload = JSON.parse(await file.text()); validateImportPayload(payload); if (!confirm('La importación reemplazará todos los datos actuales. ¿Deseas continuar?')) return; await importAllData(payload); await refresh('Respaldo importado correctamente.'); navigate('home'); }
   catch (error) { toast(error.message || 'No se pudo importar el respaldo.'); } finally { event.target.value = ''; }
 });

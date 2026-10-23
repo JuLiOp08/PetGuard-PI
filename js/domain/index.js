@@ -93,24 +93,24 @@ export function validatePetInput(input) {
   const species = String(input.species || '');
   const color = String(input.color || '').trim();
   const size = String(input.size || '');
-  const description = String(input.description || '').trim();
+  const photo = String(input.photo || '').trim();
   if (!name) throw new ValidationError('El nombre es obligatorio.', 'name');
   if (!['dog', 'cat'].includes(species)) throw new ValidationError('Selecciona perro o gato.', 'species');
   if (!color) throw new ValidationError('El color es obligatorio.', 'color');
   if (!['small', 'medium', 'large'].includes(size)) throw new ValidationError('Selecciona un tamaño.', 'size');
-  if (!description) throw new ValidationError('La descripción identificativa es obligatoria.', 'description');
+  if (photo && !/^data:image\/(?:jpeg|png|webp);base64,/i.test(photo)) {
+    throw new ValidationError('Selecciona una foto JPG, PNG o WebP válida.', 'photoFile');
+  }
   return {
     name,
     species,
     color,
     size,
-    description,
+    photo,
     breed: String(input.breed || '').trim(),
     sex: String(input.sex || '').trim(),
-    distinctiveFeatures: String(input.distinctiveFeatures || '').trim(),
-    behavior: String(input.behavior || '').trim(),
-    medicalNotes: String(input.medicalNotes || '').trim(),
-    approachInstructions: String(input.approachInstructions || '').trim()
+    condition: String(input.condition || input.medicalNotes || '').trim(),
+    relevantInformation: String(input.relevantInformation || input.description || '').trim()
   };
 }
 
