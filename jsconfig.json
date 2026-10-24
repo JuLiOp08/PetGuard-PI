@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "types": ["leaflet"],
+    "skipLibCheck": true
+  },
+  "include": ["js/**/*.js"],
+  "exclude": ["node_modules"]
+}

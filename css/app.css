@@ -100,7 +100,7 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .metric__icon--blue { color: var(--blue); background: var(--blue-soft); }
 .metric__icon--red { color: var(--danger); background: var(--danger-soft); }
 .metric__icon--amber { color: var(--amber); background: var(--amber-soft); }
-.metric strong, .metric span { display: block; }
+.metric > div > strong, .metric > div > span { display: block; }
 .metric strong { font-size: 1.5rem; line-height: 1; }
 .metric div > span { margin-top: .35rem; color: var(--muted); font-size: .85rem; }
 .attention { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem; padding: 1rem 1.2rem; border-radius: var(--radius-md); color: white; background: var(--danger); }
@@ -244,6 +244,11 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
 .check-field .check { margin-bottom: .25rem; }
 .form-error { margin-bottom: 1rem; padding: .75rem .9rem; border-left: 4px solid var(--danger); border-radius: 8px; color: var(--danger-strong); background: var(--danger-soft); font-weight: 650; }
 .form-note { padding: .7rem .8rem; border-radius: 10px; color: #3e5d54; background: var(--primary-soft); font-size: .85rem; }
+.coordinate-picker { margin-bottom: .95rem; }
+.coordinate-map { margin-top: .7rem; padding: .75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-soft); }
+.coordinate-map > p { margin-bottom: .6rem; color: var(--muted); font-size: .82rem; }
+.coordinate-map__canvas { position: relative; z-index: 0; width: 100%; height: 280px; overflow: hidden; border: 1px solid #b9c8c3; border-radius: 10px; background: #dfe8e4; }
+.coordinate-map__canvas:focus-visible { outline-offset: 2px; }
 .dialog { width: min(680px, calc(100% - 1.5rem)); max-height: calc(100dvh - 1.5rem); padding: 0; overflow: hidden; border: 0; border-radius: var(--radius-lg); color: var(--ink); background: white; box-shadow: 0 30px 90px rgba(7,35,28,.3); }
 .dialog[open] { display: flex; flex-direction: column; }
 .dialog::backdrop { background: rgba(7,28,23,.62); backdrop-filter: blur(3px); }

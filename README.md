@@ -39,6 +39,9 @@ También se pueden ejecutar por separado:
 ```bash
 npm run test:unit
 npm run test:integration
+npm run test:e2e
+npm run typecheck
+npm run lint
 ```
 
 ## Flujo mínimo de prueba
@@ -56,7 +59,7 @@ npm run test:integration
 
 - Perfil local persistente.
 - Registro y eliminación de mascotas.
-- Registro manual de ubicaciones conocidas con validación de coordenadas.
+- Registro manual de ubicaciones conocidas con validación de coordenadas y selección opcional en mapa.
 - Última ubicación por mascota con estado reciente/intermedia/antigua.
 - Fichas editables con foto, datos principales e información complementaria de mascotas.
 - Casos de búsqueda con alerta, historial y resolución.
@@ -67,7 +70,8 @@ npm run test:integration
 ## Limitaciones reales
 
 - No incluye simulador de collar ni recorridos; ese módulo quedó fuera del alcance actual.
-- No incluye backend, mapas externos, PWA, GPS real ni difusión a terceros.
+- No incluye backend, PWA, GPS real ni difusión a terceros.
+- El selector opcional usa teselas de OpenStreetMap y requiere conexión mientras el mapa está abierto; la entrada manual sigue disponible sin conexión.
 - Las pruebas con usuarios reales quedan pendientes.
 
 ## Matriz de requisitos
@@ -80,4 +84,4 @@ Consulte [BACKLOG_POSTERIOR_MVP.md](BACKLOG_POSTERIOR_MVP.md).
 
 ## Nota de alcance
 
-La aplicación funciona en el navegador y usa IndexedDB localmente. Las ubicaciones se ingresan manualmente y nunca se presentan como seguimiento GPS en tiempo real.
+La aplicación funciona en el navegador y usa IndexedDB localmente. Las ubicaciones se ingresan manualmente, escribiendo coordenadas o seleccionando un punto, y nunca se presentan como seguimiento GPS en tiempo real.
