@@ -28,6 +28,25 @@ async function pickMapCenter(dialog) {
   await expect(dialog.locator('[name="lng"]')).not.toHaveValue('');
 }
 
+test('el primer perfil recibe datos de demostración persistentes', async ({ page }) => {
+  await createProfile(page);
+
+  await expect(page.locator('.metric').filter({ hasText: 'Mascotas' }).locator('strong')).toHaveText('2');
+  await expect(page.locator('.metric').filter({ hasText: 'Ubicaciones' }).locator('strong')).toHaveText('3');
+  await expect(page.locator('.metric').filter({ hasText: 'Alertas activas' }).locator('strong')).toHaveText('1');
+  await expect(page.getByText('Canela').first()).toBeVisible();
+  await expect(page.getByText('Nube').first()).toBeVisible();
+
+  await page.goto('/#/alerts');
+  await expect(page.getByRole('heading', { name: 'Nube' })).toBeVisible();
+  await page.getByRole('link', { name: /Abrir caso/ }).click();
+  await expect(page.getByText('Vista cerca del parque')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Alerta de Nube' })).toBeVisible();
+  await expect(page.getByText('Vista cerca del parque')).toBeVisible();
+});
+
 test('los iconos del resumen están centrados dentro de sus cuadrados', async ({ page }) => {
   await createProfile(page);
 
@@ -54,6 +73,7 @@ test('una ubicación conocida se puede seleccionar en el mapa y guardar', async 
 
   await page.getByRole('button', { name: /Añadir/ }).click();
   const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Mascota *').selectOption({ label: 'Luna' });
   await expect(dialog.getByLabel(/Latitud/)).toHaveCount(0);
   await expect(dialog.getByLabel(/Longitud/)).toHaveCount(0);
   await expect(dialog.getByText(/Precisión aproximada/)).toHaveCount(0);
@@ -104,9 +124,10 @@ test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page 
   await page.goto('/#/alerts');
   await page.getByRole('button', { name: /Activar alerta/ }).click();
   let dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Mascota *').selectOption({ label: 'Luna' });
   await dialog.getByLabel('Mensaje de búsqueda *').fill('Luna está extraviada');
   await dialog.getByRole('button', { name: 'Activar alerta' }).click();
-  await page.getByRole('link', { name: /Abrir caso/ }).click();
+  await page.locator('.alert-card').filter({ hasText: 'Luna' }).getByRole('link', { name: /Abrir caso/ }).click();
   await page.getByRole('button', { name: 'Registrar avistamiento' }).click();
 
   dialog = page.getByRole('dialog');

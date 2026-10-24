@@ -8,6 +8,7 @@ import {
   validateImportPayload, validateLocationInput, validatePetInput, validateProfileInput,
   validateIsoDate, validateSightingInput, ValidationError
 } from '../domain/index.js';
+import { createDemoData } from './demo-data.js';
 import { destroyCoordinatePicker, initializeCoordinatePicker } from './map-picker.js';
 
 const app = document.querySelector('#app');
@@ -293,6 +294,7 @@ function showFormError(form, error) {
 
 async function refresh(message = '') { Object.assign(state, await loadAppData()); render(); if (message) toast(message); }
 function toast(message) { const region = document.querySelector('#toast-region'); if (!region) return; const item = document.createElement('div'); item.className = 'toast'; item.textContent = message; region.append(item); setTimeout(() => item.remove(), 3500); }
+function hasStoredRecords() { return ['pets', 'locations', 'alerts', 'alertEvents', 'sightings', 'notifications', 'settings'].some((key) => state[key].length); }
 
 document.addEventListener('click', async (event) => {
   const button = event.target.closest('[data-action]'); if (!button) return;
@@ -331,7 +333,7 @@ document.addEventListener('submit', async (event) => {
   const submitLabel = submitButton?.innerHTML;
   if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Guardando…'; }
   try {
-    if (form.id === 'profile-form') { const data = values(form); data.acceptsLocalStorage = form.elements.acceptsLocalStorage.checked; const profile = validateProfileInput(data); if (!profile.acceptsLocalStorage) throw new ValidationError('Debes aceptar el almacenamiento local para continuar.', 'acceptsLocalStorage'); await saveProfile(profile); form.closest('dialog')?.close(); await refresh('Perfil guardado.'); navigate('home'); }
+    if (form.id === 'profile-form') { const data = values(form); data.acceptsLocalStorage = form.elements.acceptsLocalStorage.checked; const profile = validateProfileInput(data); if (!profile.acceptsLocalStorage) throw new ValidationError('Debes aceptar el almacenamiento local para continuar.', 'acceptsLocalStorage'); if (!state.profile && !hasStoredRecords()) await importAllData(createDemoData(profile)); else await saveProfile(profile); form.closest('dialog')?.close(); await refresh('Perfil guardado.'); navigate('home'); }
     if (form.id === 'pet-form') { const pet = validatePetInput(values(form)); await savePet({ ...pet, id: form.dataset.id || undefined }); form.closest('dialog')?.close(); await refresh('Ficha guardada.'); }
     if (form.id === 'location-form') { const data = values(form); if (!data.lat || !data.lng) throw new ValidationError('Selecciona un punto en el mapa.', 'lat'); const location = validateLocationInput(data); await saveLocation(location); form.closest('dialog')?.close(); await refresh('Ubicación registrada.'); }
     if (form.id === 'alert-form') { const data = values(form); if (!data.searchMessage.trim()) throw new ValidationError('Escribe un mensaje breve para orientar la búsqueda.', 'searchMessage'); const pet = state.pets.find((item) => item.id === data.petId); await createAlert({ ...data, lostAt: validateIsoDate(data.lostAt, 'lostAt'), lastKnownLocationId: latestLocation(data.petId)?.id || null, contactSnapshot: { alias: state.profile.alias, phone: state.profile.phone, email: state.profile.email }, petName: pet?.name || '' }); form.closest('dialog')?.close(); await refresh('Alerta activada.'); navigate('alerts'); }

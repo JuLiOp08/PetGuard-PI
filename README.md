@@ -47,8 +47,8 @@ npm run lint
 ## Flujo mínimo de prueba
 
 1. Abrir http://localhost:4173/
-2. Crear el perfil local.
-3. Registrar una mascota y, si se desea, añadir una foto e información complementaria.
+2. Crear el perfil local; en un almacenamiento vacío se cargan datos de demostración.
+3. Revisar las fichas de ejemplo o registrar una mascota propia y, si se desea, añadir una foto e información complementaria.
 4. Añadir una ubicación conocida desde Mascotas o Ubicaciones.
 5. Activar una alerta de extravío.
 6. Registrar y revisar un avistamiento.
@@ -58,6 +58,7 @@ npm run lint
 ## Alcance actual del MVP
 
 - Perfil local persistente.
+- Datos de demostración al completar por primera vez un perfil local vacío.
 - Registro y eliminación de mascotas.
 - Registro manual de ubicaciones conocidas con validación de coordenadas y selección opcional en mapa.
 - Última ubicación por mascota con estado reciente/intermedia/antigua.
