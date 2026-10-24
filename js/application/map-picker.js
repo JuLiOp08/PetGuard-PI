@@ -51,6 +51,30 @@ function writeCoordinates(form, status, lat, lng) {
   form.querySelector('[data-error-for="lat"]')?.replaceChildren();
 }
 
+/**
+ * @param {HTMLFormElement} form
+ * @param {HTMLElement} status
+ * @param {(lat: number, lng: number) => void} selectLocation
+ */
+function selectCurrentLocation(form, status, selectLocation) {
+  if (!navigator.geolocation) {
+    status.textContent = 'Selecciona el punto en el mapa; este dispositivo no comparte su ubicación.';
+    return;
+  }
+
+  status.textContent = 'Buscando tu ubicación actual…';
+  const alreadySelected = () => coordinateInput(form, 'lat').value !== '' && coordinateInput(form, 'lng').value !== '';
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      if (form.isConnected && !alreadySelected()) selectLocation(coords.latitude, coords.longitude);
+    },
+    () => {
+      if (form.isConnected && !alreadySelected()) status.textContent = 'No pudimos obtener tu ubicación. Selecciona el punto en el mapa.';
+    },
+    { enableHighAccuracy: false, maximumAge: 300_000, timeout: 5_000 }
+  );
+}
+
 function supportsWebGL2() {
   try {
     const canvas = document.createElement('canvas');
@@ -62,10 +86,10 @@ function supportsWebGL2() {
   }
 }
 
-/** @param {HTMLElement} canvas */
-function resetMapCanvas(canvas) {
+/** @param {HTMLElement} canvas @param {string} [className] */
+function resetMapCanvas(canvas, className = 'coordinate-map__canvas') {
   canvas.replaceChildren();
-  canvas.className = 'coordinate-map__canvas';
+  canvas.className = className;
   canvas.removeAttribute('style');
   canvas.removeAttribute('tabindex');
 }
@@ -108,6 +132,10 @@ function initializeRasterPicker(form, canvas, status, initial) {
 
   if (initial.selected) placeMarker(initial.center[1], initial.center[0], false);
   map.on('click', ({ latlng }) => placeMarker(latlng.lat, latlng.lng));
+  if (!initial.selected) selectCurrentLocation(form, status, (lat, lng) => {
+    placeMarker(lat, lng);
+    map.setView([lat, lng], 16);
+  });
   requestAnimationFrame(() => map.invalidateSize());
   return map;
 }
@@ -154,6 +182,10 @@ function initializeVectorPicker(form, canvas, status, initial) {
 
   if (initial.selected) placeMarker(initial.center[1], initial.center[0], false);
   map.on('click', ({ lngLat }) => placeMarker(lngLat.lat, lngLat.lng));
+  if (!initial.selected) selectCurrentLocation(form, status, (lat, lng) => {
+    placeMarker(lat, lng);
+    map.easeTo({ center: [lng, lat], zoom: 16 });
+  });
   requestAnimationFrame(() => map.resize());
   return map;
 }
@@ -183,4 +215,102 @@ export function destroyCoordinatePicker(form) {
   if (!form) return;
   mapByForm.get(form)?.remove();
   mapByForm.delete(form);
+}
+
+/** @param {'loss' | 'sighting'} type */
+function overviewMarker(type) {
+  const marker = document.createElement('span');
+  marker.className = `overview-map__marker overview-map__marker--${type}`;
+  marker.setAttribute('aria-hidden', 'true');
+  return marker;
+}
+
+/**
+ * @param {HTMLElement} canvas
+ * @param {{ lat: number, lng: number, type: 'loss' | 'sighting' }[]} points
+ */
+function initializeVectorOverview(canvas, points) {
+  const first = points[0];
+  const map = /** @type {import('maplibre-gl').Map} */ (/** @type {unknown} */ (new VectorMap({
+    container: canvas,
+    style: 'https://tiles.openfreemap.org/styles/positron',
+    center: [first.lng, first.lat],
+    zoom: 15,
+    attributionControl: true,
+    interactive: false,
+    maxPitch: 0
+  })));
+
+  map.once('style.load', () => {
+    for (const layer of map.getStyle().layers || []) {
+      if (clutterLayerPattern.test(layer.id)) map.setLayoutProperty(layer.id, 'visibility', 'none');
+    }
+  });
+
+  points.forEach((point) => {
+    new Marker({ element: overviewMarker(point.type), anchor: 'center' }).setLngLat([point.lng, point.lat]).addTo(map);
+  });
+  if (points.length > 1) {
+    const lngs = points.map((point) => point.lng);
+    const lats = points.map((point) => point.lat);
+    map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 48, maxZoom: 16, duration: 0 });
+  }
+  requestAnimationFrame(() => map.resize());
+  return map;
+}
+
+/**
+ * @param {HTMLElement} canvas
+ * @param {{ lat: number, lng: number, type: 'loss' | 'sighting' }[]} points
+ */
+function initializeRasterOverview(canvas, points) {
+  const leaflet = /** @type {Window & { L?: typeof import('leaflet') }} */ (window).L;
+  if (!leaflet) throw new Error('No se pudo cargar el mapa compatible.');
+  const first = points[0];
+  const map = leaflet.map(canvas, {
+    attributionControl: true,
+    boxZoom: false,
+    doubleClickZoom: false,
+    dragging: false,
+    keyboard: false,
+    scrollWheelZoom: false,
+    touchZoom: false,
+    zoomControl: false
+  });
+  leaflet.tileLayer(rasterTiles, {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    detectRetina: true,
+    maxZoom: 19
+  }).addTo(map);
+  points.forEach((point) => {
+    leaflet.circleMarker([point.lat, point.lng], {
+      className: `overview-map__marker overview-map__marker--${point.type}`,
+      color: point.type === 'loss' ? '#a62635' : '#145f52',
+      fillColor: point.type === 'loss' ? '#d84b5a' : '#23907d',
+      fillOpacity: 1,
+      radius: point.type === 'loss' ? 9 : 7,
+      weight: 3
+    }).addTo(map);
+  });
+  if (points.length > 1) map.fitBounds(points.map((point) => [point.lat, point.lng]), { padding: [40, 40], maxZoom: 16 });
+  else map.setView([first.lat, first.lng], 16);
+  requestAnimationFrame(() => map.invalidateSize());
+  return map;
+}
+
+/**
+ * @param {HTMLElement | null} canvas
+ * @param {{ lat: number, lng: number, type: 'loss' | 'sighting' }[]} points
+ */
+export function initializeOverviewMap(canvas, points) {
+  if (!canvas || !points.length) return null;
+  let map;
+  if (supportsWebGL2()) {
+    try {
+      map = initializeVectorOverview(canvas, points);
+    } catch {
+      resetMapCanvas(canvas, 'overview-map__canvas');
+    }
+  }
+  return map || initializeRasterOverview(canvas, points);
 }

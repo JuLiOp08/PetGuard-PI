@@ -89,6 +89,8 @@ export function createDemoData(profile, referenceTime = new Date()) {
         petName: 'Nube',
         status: 'active',
         lostAt: minutesBefore(referenceTime, 48),
+        lat: 4.7132,
+        lng: -74.0704,
         lastKnownLocationId: nubeLocationId,
         placeReference: 'Cerca del parque',
         circumstances: 'Salió al abrirse la puerta durante una visita.',

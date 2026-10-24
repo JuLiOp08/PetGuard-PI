@@ -117,6 +117,35 @@ test('el mapa funciona en celulares que sólo ofrecen WebGL1', async ({ page }) 
   await expect(page.getByText(/Cannot read properties|WebGL2/i)).toHaveCount(0);
 });
 
+test('una pérdida usa un solo detalle y marca la ubicación actual en el mapa', async ({ page, context }) => {
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({ latitude: -12.0464, longitude: -77.0428 });
+  await createProfile(page);
+
+  await page.goto('/#/alerts');
+  await page.getByRole('button', { name: /Activar alerta/ }).click();
+  const dialog = page.getByRole('dialog');
+
+  await expect(dialog.getByRole('application', { name: 'Mapa para seleccionar coordenadas' })).toBeVisible();
+  await expect(dialog.getByLabel('Referencia o detalles para la búsqueda *')).toBeVisible();
+  await expect(dialog.getByLabel('Lugar de referencia')).toHaveCount(0);
+  await expect(dialog.getByLabel('Circunstancias')).toHaveCount(0);
+  await expect(dialog.locator('[name="lat"]')).toHaveValue('-12.046400');
+  await expect(dialog.locator('[name="lng"]')).toHaveValue('-77.042800');
+});
+
+test('el caso muestra la pérdida y los últimos avistamientos en un mapa', async ({ page }) => {
+  await createProfile(page);
+
+  await page.goto('/#/alerts');
+  await page.getByRole('link', { name: /Abrir caso/ }).click();
+
+  await expect(page.getByRole('img', { name: 'Mapa de pérdida y últimos avistamientos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Últimos avistamientos' })).toBeVisible();
+  await expect(page.getByText('Vista cerca del parque')).toBeVisible();
+  await expect(page.getByText('1 avistamiento en el mapa')).toBeVisible();
+});
+
 test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page }) => {
   await createProfile(page);
   await createPet(page);
@@ -125,7 +154,8 @@ test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page 
   await page.getByRole('button', { name: /Activar alerta/ }).click();
   let dialog = page.getByRole('dialog');
   await dialog.getByLabel('Mascota *').selectOption({ label: 'Luna' });
-  await dialog.getByLabel('Mensaje de búsqueda *').fill('Luna está extraviada');
+  await pickMapCenter(dialog);
+  await dialog.getByLabel('Referencia o detalles para la búsqueda *').fill('Luna está extraviada');
   await dialog.getByRole('button', { name: 'Activar alerta' }).click();
   await page.locator('.alert-card').filter({ hasText: 'Luna' }).getByRole('link', { name: /Abrir caso/ }).click();
   await page.getByRole('button', { name: 'Registrar avistamiento' }).click();
@@ -135,5 +165,7 @@ test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page 
   await pickMapCenter(dialog);
   await dialog.getByRole('button', { name: 'Guardar avistamiento' }).click();
 
+  await expect(page.getByRole('img', { name: 'Mapa de pérdida y últimos avistamientos' })).toBeVisible();
+  await expect(page.getByText('1 avistamiento en el mapa')).toBeVisible();
   await expect(page.getByText('Vista cerca del parque')).toBeVisible();
 });
