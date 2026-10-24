@@ -79,6 +79,24 @@ test('el selector de mapa no depende de archivos publicados desde node_modules',
   await dialog.getByRole('button', { name: 'Cerrar' }).click();
 });
 
+test('el mapa funciona en celulares que sólo ofrecen WebGL1', async ({ page }) => {
+  await page.addInitScript(() => {
+    const Canvas = globalThis.HTMLCanvasElement;
+    const getContext = Canvas.prototype.getContext;
+    Canvas.prototype.getContext = function getCompatibleContext(type, ...args) {
+      if (type === 'webgl2') return null;
+      return getContext.call(this, type, ...args);
+    };
+  });
+  await createProfile(page);
+  await createPet(page);
+
+  await page.getByRole('button', { name: /Añadir/ }).click();
+  const dialog = page.getByRole('dialog');
+  await pickMapCenter(dialog);
+  await expect(page.getByText(/Cannot read properties|WebGL2/i)).toHaveCount(0);
+});
+
 test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page }) => {
   await createProfile(page);
   await createPet(page);
