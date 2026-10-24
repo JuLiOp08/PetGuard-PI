@@ -59,6 +59,18 @@ test('una ubicación conocida se puede seleccionar en el mapa y guardar', async 
   await expect(page.getByText(`${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`)).toBeVisible();
 });
 
+test('el selector de mapa no depende de archivos publicados desde node_modules', async ({ page }) => {
+  await page.route('**/node_modules/**', (route) => route.fulfill({ status: 404, body: 'Not found' }));
+  await createProfile(page);
+  await createPet(page);
+
+  await page.getByRole('button', { name: /Añadir/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Seleccionar en el mapa' }).click();
+
+  await expect(dialog.getByRole('application', { name: 'Mapa para seleccionar coordenadas' })).toHaveClass(/leaflet-container/);
+});
+
 test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page }) => {
   await createProfile(page);
   await createPet(page);
