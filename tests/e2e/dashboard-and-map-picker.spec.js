@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 
+test.afterEach(async ({ page }) => {
+  await page.goto('about:blank');
+});
+
 async function createProfile(page) {
   await page.goto('/');
   await page.getByLabel('Nombre o alias').fill('Ana');
@@ -17,7 +21,6 @@ async function createPet(page) {
 }
 
 async function pickMapCenter(dialog) {
-  await dialog.getByRole('button', { name: 'Seleccionar en el mapa' }).click();
   const map = dialog.getByRole('application', { name: 'Mapa para seleccionar coordenadas' });
   await expect(map).toBeVisible();
   await map.click({ position: { x: 160, y: 110 } });
@@ -51,6 +54,11 @@ test('una ubicación conocida se puede seleccionar en el mapa y guardar', async 
 
   await page.getByRole('button', { name: /Añadir/ }).click();
   const dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel(/Latitud/)).toHaveCount(0);
+  await expect(dialog.getByLabel(/Longitud/)).toHaveCount(0);
+  await expect(dialog.getByText(/Precisión aproximada/)).toHaveCount(0);
+  await expect(dialog.locator('[name="lat"]')).toHaveAttribute('type', 'hidden');
+  await expect(dialog.locator('[name="lng"]')).toHaveAttribute('type', 'hidden');
   await pickMapCenter(dialog);
   const lat = await dialog.locator('[name="lat"]').inputValue();
   const lng = await dialog.locator('[name="lng"]').inputValue();
@@ -66,9 +74,9 @@ test('el selector de mapa no depende de archivos publicados desde node_modules',
 
   await page.getByRole('button', { name: /Añadir/ }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: 'Seleccionar en el mapa' }).click();
 
-  await expect(dialog.getByRole('application', { name: 'Mapa para seleccionar coordenadas' })).toHaveClass(/leaflet-container/);
+  await expect(dialog.getByRole('application', { name: 'Mapa para seleccionar coordenadas' })).toHaveClass(/maplibregl-map/);
+  await dialog.getByRole('button', { name: 'Cerrar' }).click();
 });
 
 test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page }) => {

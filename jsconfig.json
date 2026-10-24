@@ -7,7 +7,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022", "DOM"],
-    "types": ["leaflet"],
     "skipLibCheck": true
   },
   "include": ["js/**/*.js"],

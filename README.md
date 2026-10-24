@@ -71,7 +71,7 @@ npm run lint
 
 - No incluye simulador de collar ni recorridos; ese módulo quedó fuera del alcance actual.
 - No incluye backend, PWA, GPS real ni difusión a terceros.
-- El selector opcional usa teselas de OpenStreetMap y requiere conexión mientras el mapa está abierto; la entrada manual sigue disponible sin conexión.
+- El selector usa un mapa vectorial simplificado de OpenFreeMap y requiere conexión mientras el formulario está abierto.
 - Las pruebas con usuarios reales quedan pendientes.
 
 ## Matriz de requisitos
@@ -84,4 +84,4 @@ Consulte [BACKLOG_POSTERIOR_MVP.md](BACKLOG_POSTERIOR_MVP.md).
 
 ## Nota de alcance
 
-La aplicación funciona en el navegador y usa IndexedDB localmente. Las ubicaciones se ingresan manualmente, escribiendo coordenadas o seleccionando un punto, y nunca se presentan como seguimiento GPS en tiempo real.
+La aplicación funciona en el navegador y usa IndexedDB localmente. Las ubicaciones se seleccionan manualmente en el mapa y nunca se presentan como seguimiento GPS en tiempo real.

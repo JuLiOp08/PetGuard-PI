@@ -1,9 +1,11 @@
 // @ts-check
 
-const leaflet = /** @type {typeof import('leaflet')} */ (window.L);
+// @ts-ignore The browser imports the self-hosted build; JSDoc types come from the npm package.
+import { Map as VectorMap, Marker } from '../../vendor/maplibre/maplibre-gl.mjs';
 
-/** @type {WeakMap<HTMLFormElement, import('leaflet').Map>} */
+/** @type {WeakMap<HTMLFormElement, import('maplibre-gl').Map>} */
 const mapByForm = new WeakMap();
+const clutterLayerPattern = /(?:^|[-_])(poi|shop|amenity|transit)(?:$|[-_])/i;
 
 /** @param {number} lat @param {number} lng */
 function validCoordinates(lat, lng) {
@@ -24,13 +26,13 @@ function initialView(form) {
   const fieldLat = Number(latInput.value);
   const fieldLng = Number(lngInput.value);
   if (validCoordinates(fieldLat, fieldLng) && latInput.value !== '' && lngInput.value !== '') {
-    return { center: [fieldLat, fieldLng], zoom: 16, selected: true };
+    return { center: [fieldLng, fieldLat], zoom: 16, selected: true };
   }
 
   const contextLat = Number(form.dataset.mapLat);
   const contextLng = Number(form.dataset.mapLng);
   if (validCoordinates(contextLat, contextLng) && form.dataset.mapLat !== '' && form.dataset.mapLng !== '') {
-    return { center: [contextLat, contextLng], zoom: 15, selected: false };
+    return { center: [contextLng, contextLat], zoom: 15, selected: false };
   }
 
   return { center: [0, 0], zoom: 2, selected: false };
@@ -44,50 +46,60 @@ function writeCoordinates(form, status, lat, lng) {
   lngInput.value = lng.toFixed(6);
   latInput.dispatchEvent(new Event('input', { bubbles: true }));
   lngInput.dispatchEvent(new Event('input', { bubbles: true }));
-  status.textContent = `Punto seleccionado: ${lat.toFixed(6)}, ${lng.toFixed(6)}.`;
+  status.textContent = 'Ubicación seleccionada. Puedes tocar otro punto o mover el marcador para ajustarla.';
+  form.querySelector('[data-error-for="lat"]')?.replaceChildren();
 }
 
-/** @param {HTMLFormElement} form @param {HTMLButtonElement} button */
-export function toggleCoordinatePicker(form, button) {
-  if (!form) return;
-  const panel = form.querySelector('[data-coordinate-map]');
+/** @param {HTMLFormElement | null} form */
+export function initializeCoordinatePicker(form) {
+  if (!form || mapByForm.has(form)) return;
   const canvas = form.querySelector('[data-coordinate-map-canvas]');
   const status = form.querySelector('[data-coordinate-map-status]');
-  if (!(panel instanceof HTMLElement) || !(canvas instanceof HTMLElement) || !(status instanceof HTMLElement)) return;
-
-  const willOpen = panel.hidden;
-  panel.hidden = !willOpen;
-  button.setAttribute('aria-expanded', String(willOpen));
-  button.textContent = willOpen ? 'Ocultar mapa' : 'Seleccionar en el mapa';
-  if (!willOpen) return;
-
-  const existing = mapByForm.get(form);
-  if (existing) {
-    requestAnimationFrame(() => existing.invalidateSize());
-    return;
-  }
+  if (!(canvas instanceof HTMLElement) || !(status instanceof HTMLElement)) return;
 
   const initial = initialView(form);
-  const map = leaflet.map(canvas).setView(/** @type {import('leaflet').LatLngExpression} */ (initial.center), initial.zoom);
-  leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-  }).addTo(map);
+  const map = /** @type {import('maplibre-gl').Map} */ (/** @type {unknown} */ (new VectorMap({
+    container: canvas,
+    style: 'https://tiles.openfreemap.org/styles/positron',
+    center: /** @type {[number, number]} */ (initial.center),
+    zoom: initial.zoom,
+    attributionControl: true,
+    dragRotate: false,
+    pitchWithRotate: false,
+    maxPitch: 0
+  })));
+  map.touchZoomRotate.disableRotation();
 
-  /** @type {import('leaflet').CircleMarker | null} */
+  map.once('style.load', () => {
+    for (const layer of map.getStyle().layers || []) {
+      if (clutterLayerPattern.test(layer.id)) map.setLayoutProperty(layer.id, 'visibility', 'none');
+    }
+  });
+
+  /** @type {import('maplibre-gl').Marker | null} */
   let marker = null;
-  /** @param {number} lat @param {number} lng */
-  const placeMarker = (lat, lng) => {
-    if (marker) marker.setLatLng([lat, lng]);
-    else marker = leaflet.circleMarker([lat, lng], { radius: 8, color: '#ffffff', weight: 3, fillColor: '#145f52', fillOpacity: 1 }).addTo(map);
+  /** @param {number} lat @param {number} lng @param {boolean} [save] */
+  const placeMarker = (lat, lng, save = true) => {
+    if (marker) marker.setLngLat([lng, lat]);
+    else {
+      marker = /** @type {import('maplibre-gl').Marker} */ (/** @type {unknown} */ (new Marker({ color: '#145f52', draggable: true }).setLngLat([lng, lat]).addTo(map)));
+      marker.on('dragend', () => {
+        const point = marker?.getLngLat();
+        if (point) writeCoordinates(form, status, point.lat, point.lng);
+      });
+    }
+    if (save) writeCoordinates(form, status, lat, lng);
   };
 
-  if (initial.selected) placeMarker(initial.center[0], initial.center[1]);
-  map.on('click', (event) => {
-    const { latlng } = /** @type {import('leaflet').LeafletMouseEvent} */ (event);
-    placeMarker(latlng.lat, latlng.lng);
-    writeCoordinates(form, status, latlng.lat, latlng.lng);
-  });
+  if (initial.selected) placeMarker(initial.center[1], initial.center[0], false);
+  map.on('click', ({ lngLat }) => placeMarker(lngLat.lat, lngLat.lng));
   mapByForm.set(form, map);
-  requestAnimationFrame(() => map.invalidateSize());
+  requestAnimationFrame(() => map.resize());
+}
+
+/** @param {HTMLFormElement | null} form */
+export function destroyCoordinatePicker(form) {
+  if (!form) return;
+  mapByForm.get(form)?.remove();
+  mapByForm.delete(form);
 }

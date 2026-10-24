@@ -8,7 +8,7 @@ import {
   validateImportPayload, validateLocationInput, validatePetInput, validateProfileInput,
   validateIsoDate, validateSightingInput, ValidationError
 } from '../domain/index.js';
-import { toggleCoordinatePicker } from './map-picker.js';
+import { destroyCoordinatePicker, initializeCoordinatePicker } from './map-picker.js';
 
 const app = document.querySelector('#app');
 const state = { profile: null, pets: [], locations: [], alerts: [], alertEvents: [], sightings: [], notifications: [], settings: [] };
@@ -201,13 +201,13 @@ function petForm(pet = {}) {
 }
 
 function coordinatePicker() {
-  return `<div class="coordinate-picker"><button class="button button--secondary button--full" type="button" data-action="toggle-coordinate-map" aria-expanded="false" aria-controls="coordinate-map">${icon('pin')} Seleccionar en el mapa</button><div class="coordinate-map" id="coordinate-map" data-coordinate-map hidden><p>Haz clic o toca el punto exacto. También puedes escribir las coordenadas manualmente.</p><div class="coordinate-map__canvas" data-coordinate-map-canvas role="application" aria-label="Mapa para seleccionar coordenadas"></div><p class="sr-only" data-coordinate-map-status role="status" aria-live="polite"></p></div></div><div class="field-grid"><label class="field"><span>Latitud <b>*</b></span><input name="lat" type="number" inputmode="decimal" step="0.000001" required><small class="field-error" data-error-for="lat"></small></label><label class="field"><span>Longitud <b>*</b></span><input name="lng" type="number" inputmode="decimal" step="0.000001" required><small class="field-error" data-error-for="lng"></small></label></div>`;
+  return `<div class="coordinate-map" data-coordinate-map><p>Selecciona el punto exacto en el mapa.</p><div class="coordinate-map__canvas" data-coordinate-map-canvas role="application" aria-label="Mapa para seleccionar coordenadas"></div><p class="coordinate-map__status" data-coordinate-map-status role="status" aria-live="polite">Aún no has seleccionado una ubicación.</p><small class="field-error" data-error-for="lat"></small></div><input name="lat" type="hidden"><input name="lng" type="hidden">`;
 }
 
 function locationForm(selectedPetId = '') {
   const petId = selectedPetId || state.pets[0]?.id || '';
   const initialLocation = latestLocation(petId);
-  return `<form id="location-form" data-map-lat="${initialLocation ? Number(initialLocation.lat) : ''}" data-map-lng="${initialLocation ? Number(initialLocation.lng) : ''}" novalidate><div class="form-error" role="alert" tabindex="-1" hidden></div><label class="field"><span>Mascota <b>*</b></span><select name="petId" required>${state.pets.map((pet) => `<option value="${escapeHtml(pet.id)}" ${pet.id === selectedPetId ? 'selected' : ''}>${escapeHtml(pet.name)}</option>`).join('')}</select></label>${coordinatePicker()}<div class="field-grid"><label class="field"><span>Fecha y hora <b>*</b></span><input name="recordedAt" type="datetime-local" value="${inputDate()}" required><small class="field-error" data-error-for="recordedAt"></small></label><label class="field"><span>Precisión aproximada (m)</span><input name="accuracy" type="number" min="1" inputmode="numeric"><small class="field-error" data-error-for="accuracy"></small></label></div><label class="field"><span>Lugar o referencia</span><input name="placeReference" maxlength="120" placeholder="Ej. Parque del barrio"></label><label class="field"><span>Nota</span><textarea name="note" rows="2"></textarea></label><p class="form-note">Este registro es una ubicación conocida ingresada manualmente, no seguimiento GPS en tiempo real.</p><div class="dialog-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancelar</button><button class="button button--primary" type="submit">Guardar ubicación</button></div></form>`;
+  return `<form id="location-form" data-map-lat="${initialLocation ? Number(initialLocation.lat) : ''}" data-map-lng="${initialLocation ? Number(initialLocation.lng) : ''}" novalidate><div class="form-error" role="alert" tabindex="-1" hidden></div><label class="field"><span>Mascota <b>*</b></span><select name="petId" required>${state.pets.map((pet) => `<option value="${escapeHtml(pet.id)}" ${pet.id === selectedPetId ? 'selected' : ''}>${escapeHtml(pet.name)}</option>`).join('')}</select></label>${coordinatePicker()}<label class="field"><span>Fecha y hora <b>*</b></span><input name="recordedAt" type="datetime-local" value="${inputDate()}" required><small class="field-error" data-error-for="recordedAt"></small></label><label class="field"><span>Lugar o referencia</span><input name="placeReference" maxlength="120" placeholder="Ej. Parque del barrio"></label><label class="field"><span>Nota</span><textarea name="note" rows="2"></textarea></label><p class="form-note">Este registro es una ubicación conocida ingresada manualmente, no seguimiento GPS en tiempo real.</p><div class="dialog-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancelar</button><button class="button button--primary" type="submit">Guardar ubicación</button></div></form>`;
 }
 
 function alertForm(selectedPetId = '') {
@@ -243,7 +243,7 @@ function openDialog(title, body) {
   const dialog = document.createElement('dialog'); dialog.id = 'app-dialog'; dialog.className = 'dialog';
   dialog.innerHTML = `<div class="dialog__head"><div><p class="eyebrow">PetGuard</p><h2>${escapeHtml(title)}</h2></div><button class="icon-button" type="button" data-action="close-dialog" aria-label="Cerrar">${icon('close')}</button></div><div class="dialog__body">${body}</div>`;
   connectFieldErrors(dialog);
-  document.body.append(dialog); dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); }); dialog.addEventListener('close', () => dialog.remove()); dialog.showModal(); dialog.querySelector('input, select, textarea, button')?.focus();
+  document.body.append(dialog); dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); }); dialog.addEventListener('close', () => { destroyCoordinatePicker(dialog.querySelector('form')); dialog.remove(); }); dialog.showModal(); initializeCoordinatePicker(dialog.querySelector('form')); dialog.querySelector('input, select, textarea, button')?.focus();
 }
 
 function values(form) { return Object.fromEntries(new FormData(form).entries()); }
@@ -299,7 +299,6 @@ document.addEventListener('click', async (event) => {
   const action = button.dataset.action;
   try {
     if (action === 'close-dialog') return button.closest('dialog')?.close();
-    if (action === 'toggle-coordinate-map') return toggleCoordinatePicker(button.closest('form'), button);
     if (action === 'remove-pet-photo') {
       const form = button.closest('#pet-form');
       form.elements.photo.value = '';
@@ -334,9 +333,9 @@ document.addEventListener('submit', async (event) => {
   try {
     if (form.id === 'profile-form') { const data = values(form); data.acceptsLocalStorage = form.elements.acceptsLocalStorage.checked; const profile = validateProfileInput(data); if (!profile.acceptsLocalStorage) throw new ValidationError('Debes aceptar el almacenamiento local para continuar.', 'acceptsLocalStorage'); await saveProfile(profile); form.closest('dialog')?.close(); await refresh('Perfil guardado.'); navigate('home'); }
     if (form.id === 'pet-form') { const pet = validatePetInput(values(form)); await savePet({ ...pet, id: form.dataset.id || undefined }); form.closest('dialog')?.close(); await refresh('Ficha guardada.'); }
-    if (form.id === 'location-form') { const location = validateLocationInput(values(form)); await saveLocation(location); form.closest('dialog')?.close(); await refresh('Ubicación registrada.'); }
+    if (form.id === 'location-form') { const data = values(form); if (!data.lat || !data.lng) throw new ValidationError('Selecciona un punto en el mapa.', 'lat'); const location = validateLocationInput(data); await saveLocation(location); form.closest('dialog')?.close(); await refresh('Ubicación registrada.'); }
     if (form.id === 'alert-form') { const data = values(form); if (!data.searchMessage.trim()) throw new ValidationError('Escribe un mensaje breve para orientar la búsqueda.', 'searchMessage'); const pet = state.pets.find((item) => item.id === data.petId); await createAlert({ ...data, lostAt: validateIsoDate(data.lostAt, 'lostAt'), lastKnownLocationId: latestLocation(data.petId)?.id || null, contactSnapshot: { alias: state.profile.alias, phone: state.profile.phone, email: state.profile.email }, petName: pet?.name || '' }); form.closest('dialog')?.close(); await refresh('Alerta activada.'); navigate('alerts'); }
-    if (form.id === 'sighting-form') { const sighting = validateSightingInput(values(form)); await saveSighting({ ...sighting, alertId: form.dataset.alertId }); form.closest('dialog')?.close(); await refresh('Avistamiento registrado.'); }
+    if (form.id === 'sighting-form') { const data = values(form); if (!data.lat || !data.lng) throw new ValidationError('Selecciona un punto en el mapa.', 'lat'); const sighting = validateSightingInput(data); await saveSighting({ ...sighting, alertId: form.dataset.alertId }); form.closest('dialog')?.close(); await refresh('Avistamiento registrado.'); }
     if (form.id === 'resolution-form') { const data = values(form); await resolveAlert(form.dataset.alertId, { foundAt: validateIsoDate(data.foundAt, 'foundAt'), place: data.place.trim(), note: data.note.trim() }); form.closest('dialog')?.close(); await refresh('Caso resuelto.'); }
     if (form.dataset.form === 'review-sighting') { await reviewSighting(form.dataset.id, values(form).reviewStatus); await refresh('Revisión actualizada.'); }
   } catch (error) { showFormError(form, error); }
