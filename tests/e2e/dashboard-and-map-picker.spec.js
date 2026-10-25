@@ -29,13 +29,62 @@ async function pickMapCenter(dialog) {
   await expect(dialog.locator('[name="lng"]')).not.toHaveValue('');
 }
 
+async function expectPageToFitViewport(page, context = 'página actual') {
+  const dimensions = await page.evaluate(() => {
+    const viewportWidth = globalThis.document.documentElement.clientWidth;
+    return {
+      viewportWidth,
+      contentWidth: globalThis.document.documentElement.scrollWidth,
+      offenders: [...globalThis.document.querySelectorAll('body *')]
+        .filter((element) => element.getBoundingClientRect().right > viewportWidth + 1)
+        .slice(0, 5)
+        .map((element) => `${element.tagName.toLowerCase()}.${element.className}`)
+    };
+  });
+
+  expect(dimensions.contentWidth, `${context}: elementos fuera del viewport: ${dimensions.offenders.join(', ')}`)
+    .toBeLessThanOrEqual(dimensions.viewportWidth);
+}
+
+test('las vistas principales caben en un celular sin indicadores internos innecesarios', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await createProfile(page);
+
+  for (const path of ['home', 'pets', 'locations', 'alerts', 'notifications', 'settings']) {
+    await page.goto(`/#/${path}`);
+    await expectPageToFitViewport(page, path);
+  }
+
+  await expect(page.getByText(/Ubicación (manual|lista)/)).toHaveCount(0);
+  await expect(page.getByText(/Vista (propietario|familiar)/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Cambiar vista' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Abrir configuración' })).toBeVisible();
+
+  await page.setViewportSize({ width: 667, height: 375 });
+  await page.goto('/#/home');
+  await expectPageToFitViewport(page, 'inicio horizontal');
+});
+
+test('las aclaraciones visibles usan frases breves y naturales', async ({ page }) => {
+  await createProfile(page);
+
+  await page.goto('/#/locations');
+  await expect(page.getByText('Son ubicaciones conocidas. No muestran una posición en tiempo real.')).toBeVisible();
+
+  await page.goto('/#/alerts');
+  await page.locator('.alert-card').filter({ hasText: 'Nube' }).getByRole('link', { name: /Abrir caso/ }).click();
+  await expect(page.getByText('Cada reporte debe revisarse. No confirma la identidad de la mascota.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Registrar avistamiento' }).first().click();
+  await expect(page.getByText('Un avistamiento sirve como referencia y debe revisarse. No confirma que sea la mascota.')).toBeVisible();
+});
+
 test('un familiar entra a los datos compartidos con permisos limitados', async ({ page }) => {
   await page.goto('/');
 
   await expect(page.getByRole('heading', { name: '¿Cómo quieres entrar?' })).toBeVisible();
   await page.getByRole('button', { name: /Entrar como familiar/ }).click();
 
-  await expect(page.getByText('Vista familiar')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Círculo de confianza' })).toBeVisible();
   await expect(page.locator('.trust-circle').getByText('Carlos Torres', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Registrar mascota/ })).toHaveCount(0);
@@ -57,7 +106,6 @@ test('la ubicación compartida al entrar se reutiliza como referencia del mapa',
   await page.goto('/');
 
   await page.getByRole('button', { name: /Entrar como propietario/ }).click();
-  await expect(page.getByText('Ubicación lista')).toBeVisible();
   await page.getByRole('button', { name: /Añadir/ }).click();
 
   const dialog = page.getByRole('dialog');
