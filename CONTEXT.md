@@ -8,8 +8,16 @@ PetGuard organiza la identificación, las ubicaciones conocidas y la búsqueda d
 Persona responsable de una o más mascotas y de gestionar su información y sus casos de búsqueda.
 _Avoid_: Usuario, dueño, cliente
 
+**Familiar de confianza**:
+Persona cercana al propietario que puede consultar la información compartida de las mascotas y colaborar con avistamientos, pero no administrar sus fichas ni resolver sus casos de búsqueda.
+_Avoid_: Propietario secundario, administrador, cuenta familiar
+
+**Círculo de confianza**:
+Grupo demostrativo formado por el propietario y hasta cinco familiares de confianza con acceso a las mascotas compartidas.
+_Avoid_: Familia, equipo, organización
+
 **Perfil local**:
-Identidad y datos de contacto del propietario que utiliza PetGuard en un dispositivo.
+Identidad y datos de contacto del propietario guardados en un dispositivo; en el prototipo también sirve como origen de los datos compartidos que consulta un familiar de confianza.
 _Avoid_: Cuenta, usuario
 
 **Mascota**:

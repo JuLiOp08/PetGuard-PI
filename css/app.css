@@ -65,6 +65,8 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .topbar { min-height: 90px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.15rem clamp(1.25rem, 4vw, 3.2rem); border-bottom: 1px solid var(--border); background: rgba(255,255,255,.92); backdrop-filter: blur(12px); }
 .topbar__actions { display: flex; align-items: center; gap: .7rem; }
 .owner-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-weight: 650; }
+.view-badge { display: inline-flex; align-items: center; min-height: 30px; padding: .3rem .6rem; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: .76rem; font-weight: 750; white-space: nowrap; }
+.location-state { color: var(--muted); font-size: .76rem; font-weight: 650; white-space: nowrap; }
 #main-content { max-width: 1380px; margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.5rem) clamp(1.25rem, 4vw, 3.2rem) 4rem; }
 .bottom-nav { display: none; }
 
@@ -178,9 +180,11 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .overview-map__dot { width: 10px; height: 10px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 1px rgba(12, 47, 39, .25); }
 .overview-map__dot--loss { background: #d84b5a; }
 .overview-map__dot--sighting { background: #23907d; }
+.overview-map__dot--current { background: #3f83cc; }
 .overview-map__marker { display: block; width: 18px; height: 18px; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(7, 35, 28, .38); }
 .overview-map__marker--loss { width: 22px; height: 22px; background: #d84b5a; }
 .overview-map__marker--sighting { background: #23907d; }
+.overview-map__marker--current { background: #3f83cc; }
 .sighting { padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .sighting__top p { margin: .12rem 0 0; color: var(--muted); font-size: .82rem; }
 .sighting__facts { display: flex; flex-wrap: wrap; gap: .5rem; margin: .8rem 0; }
@@ -207,6 +211,26 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .empty__mark { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: .7rem; border-radius: 18px; color: var(--primary); background: var(--primary-soft); }
 .empty p { max-width: 380px; }
 .onboarding { min-height: 100vh; display: grid; grid-template-columns: minmax(320px, .9fr) minmax(420px, 1.1fr); }
+.role-entry { min-height: 100vh; display: grid; grid-template-columns: minmax(300px, .8fr) minmax(520px, 1.2fr); }
+.role-entry__intro { display: flex; flex-direction: column; justify-content: space-between; min-height: 100vh; padding: clamp(2rem, 6vw, 5rem); color: white; background: linear-gradient(145deg, #0b4137, #197361); }
+.role-entry__intro h1 { max-width: 620px; color: white; font-size: clamp(2.4rem, 5vw, 4.4rem); }
+.role-entry__intro p { max-width: 560px; color: #d6e9e3; }
+.role-entry__privacy { padding: .8rem 1rem; border: 1px solid rgba(255,255,255,.2); border-radius: 12px; background: rgba(255,255,255,.08); font-size: .84rem; }
+.role-entry__choices { display: grid; align-content: center; gap: 1.5rem; padding: clamp(1.2rem, 5vw, 4rem); }
+.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.role-card { display: flex; flex-direction: column; gap: 1rem; min-width: 0; padding: 1.25rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; box-shadow: var(--shadow); }
+.role-card > div { flex: 1; }
+.role-card p { color: var(--muted); }
+.role-card__avatar { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 18px; color: white; background: var(--primary); font-weight: 850; }
+.role-card__avatar--family { color: var(--primary); background: var(--primary-soft); }
+.trust-circle { margin-bottom: 1rem; }
+.trust-circle__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: .7rem; }
+.trust-person { display: flex; align-items: center; gap: .65rem; padding: .7rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
+.trust-person.is-current { border-color: #78b8a7; background: var(--primary-soft); }
+.trust-person > span { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto; border-radius: 12px; color: white; background: var(--primary); font-size: .76rem; font-weight: 800; }
+.trust-person div { display: grid; min-width: 0; }
+.trust-person strong, .trust-person small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trust-person small { color: var(--muted); }
 .onboarding__intro { display: flex; flex-direction: column; justify-content: space-between; min-height: 100vh; padding: clamp(2rem, 6vw, 5rem); color: white; background: linear-gradient(145deg, #0b4137, #197361); }
 .onboarding__intro h1 { max-width: 650px; color: white; font-size: clamp(2.5rem, 6vw, 4.8rem); }
 .onboarding__intro p { max-width: 600px; color: #d6e9e3; font-size: 1.08rem; }
@@ -299,6 +323,10 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
   .metric div > span { font-size: .75rem; }
   .attention { align-items: stretch; flex-direction: column; }
   .onboarding { grid-template-columns: 1fr; }
+  .role-entry { grid-template-columns: 1fr; }
+  .role-entry__intro { min-height: auto; gap: 2rem; padding: 2rem 1.25rem; }
+  .role-entry__intro h1 { max-width: 18ch; font-size: clamp(2rem, 9vw, 2.7rem); }
+  .role-entry__choices { padding: 1rem; }
   .onboarding__intro { min-height: auto; gap: 2rem; padding: 2rem 1.25rem; }
   .onboarding__intro h1 { max-width: 18ch; font-size: clamp(2rem, 9vw, 2.7rem); }
   .onboarding__intro > div p:last-child { max-width: 42ch; }
@@ -320,6 +348,7 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
   .dialog-actions .button { flex: 1; min-width: 0; padding-inline: .4rem; font-size: .84rem; white-space: nowrap; }
   .button-row { flex-direction: column; }
   .button-row .button { width: 100%; }
+  .role-grid { grid-template-columns: 1fr; }
   .section-head { align-items: flex-start; }
 }
 

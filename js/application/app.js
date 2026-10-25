@@ -9,11 +9,23 @@ import {
   validateCoordinates, validateIsoDate, validateSightingInput, ValidationError
 } from '../domain/index.js';
 import { createDemoData } from './demo-data.js';
-import { destroyCoordinatePicker, initializeCoordinatePicker, initializeOverviewMap } from './map-picker.js';
+import { destroyCoordinatePicker, getReferenceLocation, initializeCoordinatePicker, initializeOverviewMap, requestReferenceLocation } from './map-picker.js';
 
 const app = document.querySelector('#app');
 const state = { profile: null, pets: [], locations: [], alerts: [], alertEvents: [], sightings: [], notifications: [], settings: [] };
 let activeOverviewMap = null;
+const VIEW_ROLE_KEY = 'petguard_demo_view_role';
+const demoViewers = Object.freeze({
+  owner: { role: 'owner', alias: 'Ana Torres', label: 'Propietaria', initials: 'AT' },
+  family: { role: 'family', alias: 'Carlos Torres', label: 'Familiar de confianza', initials: 'CT' }
+});
+const trustCircle = Object.freeze([
+  demoViewers.owner,
+  demoViewers.family,
+  { role: 'family', alias: 'Lucía Torres', label: 'Familiar de confianza', initials: 'LT' },
+  { role: 'family', alias: 'Mario Vega', label: 'Cuidador de confianza', initials: 'MV' }
+]);
+let viewerRole = window.sessionStorage.getItem(VIEW_ROLE_KEY) || '';
 const labels = {
   dog: 'Perro', cat: 'Gato', small: 'Pequeño', medium: 'Mediano', large: 'Grande', safe: 'Segura',
   lost: 'Extraviada', found: 'Encontrada', active: 'Activa', paused: 'Pausada', resolved: 'Resuelta',
@@ -27,6 +39,8 @@ const confidenceLabel = (value) => ({ low: 'Baja', medium: 'Media', high: 'Alta'
 const formatDate = (value) => value ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Sin fecha';
 const inputDate = (date = new Date()) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 const safePhoto = (value = '') => /^data:image\/(?:jpeg|png|webp);base64,/i.test(value) ? value : '';
+const isOwnerView = () => viewerRole === 'owner';
+const currentViewer = () => demoViewers[viewerRole] || demoViewers.owner;
 
 function petRelevantInformation(pet = {}) {
   if (pet.relevantInformation) return pet.relevantInformation;
@@ -82,9 +96,15 @@ function shell(content, title, current = route().page) {
     <aside class="sidebar" aria-label="Navegación principal"><a class="brand" href="#/home" aria-label="PetGuard, inicio"><span class="brand__mark">P</span><span>PetGuard</span></a><nav>
       ${navItem('home', 'Inicio', 'home', current)}${navItem('pets', 'Mascotas', 'pets', current)}${navItem('locations', 'Ubicaciones', 'pin', current)}${navItem('alerts', 'Alertas', 'alert', current)}${navItem('notifications', `Avisos${unread ? ` (${unread})` : ''}`, 'bell', current)}
     </nav><div class="sidebar__foot"><p>Datos guardados en este navegador.</p></div></aside>
-    <div class="workspace"><header class="topbar"><div><p class="eyebrow">PetGuard</p><h1>${escapeHtml(title)}</h1></div><div class="topbar__actions"><span class="owner-name">${escapeHtml(state.profile?.alias || '')}</span><a class="icon-button${current === 'settings' ? ' is-active' : ''}" href="#/settings" aria-label="Abrir configuración" ${current === 'settings' ? 'aria-current="page"' : ''}>${icon('settings')}</a></div></header><main id="main-content" tabindex="-1">${content}</main></div>
+    <div class="workspace"><header class="topbar"><div><p class="eyebrow">PetGuard</p><h1>${escapeHtml(title)}</h1></div><div class="topbar__actions"><span class="location-state">${getReferenceLocation() ? 'Ubicación lista' : 'Ubicación manual'}</span><span class="view-badge">Vista ${isOwnerView() ? 'propietario' : 'familiar'}</span><span class="owner-name">${escapeHtml(currentViewer().alias)}</span><button class="icon-button" type="button" data-action="change-view" aria-label="Cambiar vista">${icon('pets')}</button>${isOwnerView() ? `<a class="icon-button${current === 'settings' ? ' is-active' : ''}" href="#/settings" aria-label="Abrir configuración" ${current === 'settings' ? 'aria-current="page"' : ''}>${icon('settings')}</a>` : ''}</div></header><main id="main-content" tabindex="-1">${content}</main></div>
     <nav class="bottom-nav" aria-label="Navegación principal">${navItem('home', 'Inicio', 'home', current)}${navItem('pets', 'Mascotas', 'pets', current)}${navItem('locations', 'Ubicaciones', 'pin', current)}${navItem('alerts', 'Alertas', 'alert', current)}${navItem('notifications', 'Avisos', 'bell', current)}</nav>
   </div><div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>`;
+}
+
+function renderRoleSelection() {
+  activeOverviewMap?.remove();
+  activeOverviewMap = null;
+  app.innerHTML = `<main class="role-entry"><section class="role-entry__intro"><a class="brand brand--light" href="#"><span class="brand__mark">P</span><span>PetGuard</span></a><div><p class="eyebrow">Demostración compartida</p><h1>Protección en familia, ubicación a la vista.</h1><p>Explora el mismo hogar desde dos responsabilidades diferentes.</p></div><p class="role-entry__privacy">Tu ubicación se solicitará al elegir una vista y solo se usará como referencia durante esta sesión.</p></section><section class="role-entry__choices" aria-labelledby="role-entry-title"><div><p class="step">Selecciona una vista</p><h2 id="role-entry-title">¿Cómo quieres entrar?</h2><p class="muted">No necesitas una cuenta. Todos los perfiles y casos son demostrativos.</p></div><div class="role-grid"><article class="role-card"><span class="role-card__avatar" aria-hidden="true">AT</span><div><p class="eyebrow">Ana Torres</p><h3>Propietario</h3><p>Administra mascotas, ubicaciones y casos de búsqueda.</p></div><button class="button button--primary button--full" type="button" data-action="select-view" data-role="owner">Entrar como propietario</button></article><article class="role-card"><span class="role-card__avatar role-card__avatar--family" aria-hidden="true">CT</span><div><p class="eyebrow">Carlos Torres</p><h3>Familiar</h3><p>Consulta la información compartida y aporta avistamientos.</p></div><button class="button button--secondary button--full" type="button" data-action="select-view" data-role="family">Entrar como familiar</button></article></div></section></main>`;
 }
 
 function profileFields(profile = {}) {
@@ -115,14 +135,15 @@ function locationRow(location) {
 function renderHome() {
   const activeAlerts = state.alerts.filter((item) => item.status === 'active');
   const recentLocations = [...state.locations].sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt)).slice(0, 4);
-  shell(`<section class="welcome"><div><p class="eyebrow">Hola, ${escapeHtml(state.profile.alias)}</p><h2>Todo lo importante, a mano.</h2><p>Consulta mascotas, casos y avisos desde un solo lugar.</p></div><button class="button button--primary" data-action="new-pet">${icon('plus')} Registrar mascota</button></section>
+  shell(`<section class="welcome"><div><p class="eyebrow">Hola, ${escapeHtml(currentViewer().alias)}</p><h2>Todo lo importante, a mano.</h2><p>${isOwnerView() ? 'Administra mascotas, casos y avisos desde un solo lugar.' : 'Consulta las mascotas compartidas y colabora con su búsqueda.'}</p></div>${isOwnerView() ? `<button class="button button--primary" data-action="new-pet">${icon('plus')} Registrar mascota</button>` : ''}</section>
     <section class="metrics" aria-label="Resumen"><a class="metric" href="#/pets"><span class="metric__icon metric__icon--green">${icon('pets')}</span><div><strong>${state.pets.length}</strong><span>Mascotas</span></div></a><a class="metric" href="#/locations"><span class="metric__icon metric__icon--blue">${icon('pin')}</span><div><strong>${state.locations.length}</strong><span>Ubicaciones</span></div></a><a class="metric" href="#/alerts"><span class="metric__icon metric__icon--red">${icon('alert')}</span><div><strong>${activeAlerts.length}</strong><span>Alertas activas</span></div></a><a class="metric" href="#/notifications"><span class="metric__icon metric__icon--amber">${icon('bell')}</span><div><strong>${state.notifications.filter((item) => !item.read).length}</strong><span>Avisos nuevos</span></div></a></section>
     ${activeAlerts.length ? `<section class="attention"><div>${icon('alert')}<div><strong>${activeAlerts.length === 1 ? 'Hay un caso de búsqueda activo' : `Hay ${activeAlerts.length} casos de búsqueda activos`}</strong><p>Consulta los datos y avistamientos disponibles.</p></div></div><a class="button button--light" href="#/alerts">Ver alertas</a></section>` : ''}
-    <div class="content-grid content-grid--home"><section class="panel home-section"><div class="section-head"><div><p class="eyebrow">Tu familia</p><h2>Mascotas</h2></div><a href="#/pets">Ver todas ${icon('arrow')}</a></div><div class="pet-grid">${state.pets.slice(0, 3).map(petCard).join('') || emptyState('Aún no hay mascotas', 'Usa “Registrar mascota” para crear la primera ficha.')}</div></section><section class="panel home-section"><div class="section-head"><div><p class="eyebrow">Registro reciente</p><h2>Ubicaciones</h2></div><button class="text-button" data-action="new-location">Añadir ${icon('plus')}</button></div><div class="timeline">${recentLocations.map(locationRow).join('') || emptyState('Sin ubicaciones', 'Registra dónde estuvo una mascota.', '', 'pin')}</div></section></div>`, 'Inicio', 'home');
+    <section class="panel trust-circle"><div class="section-head"><div><p class="eyebrow">Hogar compartido</p><h2>Círculo de confianza</h2></div><span class="view-badge">${trustCircle.length} personas</span></div><div class="trust-circle__list">${trustCircle.map((member) => `<article class="trust-person${member.alias === currentViewer().alias ? ' is-current' : ''}"><span aria-hidden="true">${member.initials}</span><div><strong>${escapeHtml(member.alias)}</strong><small>${escapeHtml(member.label)}${member.alias === currentViewer().alias ? ' · Tú' : ''}</small></div></article>`).join('')}</div></section>
+    <div class="content-grid content-grid--home"><section class="panel home-section"><div class="section-head"><div><p class="eyebrow">Hogar compartido</p><h2>Mascotas</h2></div><a href="#/pets">Ver todas ${icon('arrow')}</a></div><div class="pet-grid">${state.pets.slice(0, 3).map(petCard).join('') || emptyState('Aún no hay mascotas', 'Todavía no hay fichas compartidas.')}</div></section><section class="panel home-section"><div class="section-head"><div><p class="eyebrow">Registro reciente</p><h2>Ubicaciones</h2></div>${isOwnerView() ? `<button class="text-button" data-action="new-location">Añadir ${icon('plus')}</button>` : ''}</div><div class="timeline">${recentLocations.map(locationRow).join('') || emptyState('Sin ubicaciones', 'Aún no existen ubicaciones compartidas.', '', 'pin')}</div></section></div>`, 'Inicio', 'home');
 }
 
 function renderPets() {
-  shell(`<div class="page-head"><div><p class="eyebrow">Identificación y cuidados</p><h2>Mascotas registradas</h2><p>Información importante para mantener organizada su ficha.</p></div><button class="button button--primary" data-action="new-pet">${icon('plus')} Nueva mascota</button></div><div class="pet-grid pet-grid--wide">${state.pets.map(petCard).join('') || emptyState('Aún no hay mascotas', 'Crea una ficha con sus datos principales.')}</div>`, 'Mascotas', 'pets');
+  shell(`<div class="page-head"><div><p class="eyebrow">Identificación y cuidados</p><h2>Mascotas compartidas</h2><p>Información importante para mantener organizada su ficha.</p></div>${isOwnerView() ? `<button class="button button--primary" data-action="new-pet">${icon('plus')} Nueva mascota</button>` : ''}</div><div class="pet-grid pet-grid--wide">${state.pets.map(petCard).join('') || emptyState('Aún no hay mascotas', 'Todavía no hay fichas compartidas.')}</div>`, 'Mascotas', 'pets');
 }
 
 function renderPetDetail(id) {
@@ -132,14 +153,14 @@ function renderPetDetail(id) {
   const alerts = state.alerts.filter((item) => item.petId === id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const active = alerts.find((item) => item.status === 'active');
   const optionalDetails = [['Raza', pet.breed], ['Sexo', pet.sex ? label(pet.sex) : ''], ['Condición', pet.condition || pet.medicalNotes], ['Información relevante', petRelevantInformation(pet)]].filter(([, value]) => value);
-  shell(`<a class="back-link" href="#/pets">${icon('back')} Volver a mascotas</a><section class="profile-hero">${petPortrait(pet, 'large', true)}<div><div class="profile-hero__title"><h2>${escapeHtml(pet.name)}</h2>${statusBadge(pet.status)}</div><p>${escapeHtml(label(pet.species))} · ${escapeHtml(label(pet.size))} · ${escapeHtml(pet.color)}</p></div><div class="profile-hero__actions"><button class="button button--secondary" data-action="edit-pet" data-id="${escapeHtml(pet.id)}">Editar ficha</button>${active ? `<a class="button button--danger" href="#/alerts/${encodeURIComponent(active.id)}">Ver alerta</a>` : `<button class="button button--danger" data-action="new-alert" data-pet-id="${escapeHtml(pet.id)}">Reportar extravío</button>`}</div></section>
-    <div class="detail-grid"><section class="panel"><div class="section-head"><h3>Información de la mascota</h3></div>${optionalDetails.length ? `<dl class="data-list">${optionalDetails.map(([term, value]) => `<div><dt>${term}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>` : '<p class="panel-note">Puedes añadir raza, sexo, condición e información relevante al editar la ficha.</p>'}</section><section class="panel"><div class="section-head"><div><h3>Ubicaciones conocidas</h3><p>Referencias manuales, no seguimiento en tiempo real.</p></div><button class="text-button" data-action="new-location" data-pet-id="${escapeHtml(pet.id)}">Añadir ${icon('plus')}</button></div><div class="timeline">${locations.slice(0, 6).map(locationRow).join('') || emptyState('Sin ubicaciones', 'Registra dónde estuvo esta mascota.', '', 'pin')}</div></section></div>
-    <section class="danger-zone"><div><h3>Eliminar ficha</h3><p>También se eliminarán sus ubicaciones, alertas y avistamientos.</p></div><button class="button button--danger-outline" data-action="delete-pet" data-id="${escapeHtml(pet.id)}">Eliminar mascota</button></section>`, pet.name, 'pets');
+  shell(`<a class="back-link" href="#/pets">${icon('back')} Volver a mascotas</a><section class="profile-hero">${petPortrait(pet, 'large', true)}<div><div class="profile-hero__title"><h2>${escapeHtml(pet.name)}</h2>${statusBadge(pet.status)}</div><p>${escapeHtml(label(pet.species))} · ${escapeHtml(label(pet.size))} · ${escapeHtml(pet.color)}</p></div><div class="profile-hero__actions">${isOwnerView() ? `<button class="button button--secondary" data-action="edit-pet" data-id="${escapeHtml(pet.id)}">Editar ficha</button>` : ''}${active ? `<a class="button button--danger" href="#/alerts/${encodeURIComponent(active.id)}">Ver alerta</a>` : isOwnerView() ? `<button class="button button--danger" data-action="new-alert" data-pet-id="${escapeHtml(pet.id)}">Reportar extravío</button>` : ''}</div></section>
+    <div class="detail-grid"><section class="panel"><div class="section-head"><h3>Información de la mascota</h3></div>${optionalDetails.length ? `<dl class="data-list">${optionalDetails.map(([term, value]) => `<div><dt>${term}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>` : '<p class="panel-note">Esta ficha todavía no tiene información complementaria.</p>'}</section><section class="panel"><div class="section-head"><div><h3>Ubicaciones conocidas</h3><p>Referencias manuales, no seguimiento en tiempo real.</p></div>${isOwnerView() ? `<button class="text-button" data-action="new-location" data-pet-id="${escapeHtml(pet.id)}">Añadir ${icon('plus')}</button>` : ''}</div><div class="timeline">${locations.slice(0, 6).map(locationRow).join('') || emptyState('Sin ubicaciones', 'Aún no existen ubicaciones compartidas.', '', 'pin')}</div></section></div>
+    ${isOwnerView() ? `<section class="danger-zone"><div><h3>Eliminar ficha</h3><p>También se eliminarán sus ubicaciones, alertas y avistamientos.</p></div><button class="button button--danger-outline" data-action="delete-pet" data-id="${escapeHtml(pet.id)}">Eliminar mascota</button></section>` : ''}`, pet.name, 'pets');
 }
 
 function renderLocations() {
   const locations = [...state.locations].sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt));
-  shell(`<div class="page-head"><div><p class="eyebrow">Referencias para la búsqueda</p><h2>Ubicaciones conocidas</h2><p>Registros manuales; no indican una posición en tiempo real.</p></div><button class="button button--primary" data-action="new-location">${icon('plus')} Añadir ubicación</button></div><section class="panel"><div class="timeline timeline--roomy">${locations.map(locationRow).join('') || emptyState('Sin ubicaciones conocidas', 'Registra dónde estuvo una mascota.', '', 'pin')}</div></section>`, 'Ubicaciones', 'locations');
+  shell(`<div class="page-head"><div><p class="eyebrow">Referencias para la búsqueda</p><h2>Ubicaciones conocidas</h2><p>Registros manuales; no indican una posición en tiempo real.</p></div>${isOwnerView() ? `<button class="button button--primary" data-action="new-location">${icon('plus')} Añadir ubicación</button>` : ''}</div><section class="panel"><div class="timeline timeline--roomy">${locations.map(locationRow).join('') || emptyState('Sin ubicaciones conocidas', 'Aún no existen ubicaciones compartidas.', '', 'pin')}</div></section>`, 'Ubicaciones', 'locations');
 }
 
 function alertCard(alert) {
@@ -151,7 +172,7 @@ function alertCard(alert) {
 
 function renderAlerts() {
   const alerts = [...state.alerts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  shell(`<div class="page-head"><div><p class="eyebrow">Casos de búsqueda</p><h2>Alertas de extravío</h2><p>Seguimiento de búsquedas y posibles avistamientos.</p></div><button class="button button--danger" data-action="new-alert">${icon('alert')} Activar alerta</button></div><div class="alert-grid">${alerts.map(alertCard).join('') || emptyState('No hay alertas', 'Activa una si una mascota se extravía.', '', 'alert')}</div>`, 'Alertas', 'alerts');
+  shell(`<div class="page-head"><div><p class="eyebrow">Casos de búsqueda</p><h2>Alertas de extravío</h2><p>Seguimiento de búsquedas y posibles avistamientos.</p></div>${isOwnerView() ? `<button class="button button--danger" data-action="new-alert">${icon('alert')} Activar alerta</button>` : ''}</div><div class="alert-grid">${alerts.map(alertCard).join('') || emptyState('No hay alertas', 'No existen casos compartidos.', '', 'alert')}</div>`, 'Alertas', 'alerts');
 }
 
 function sightingCard(item, last, open) {
@@ -171,11 +192,13 @@ function renderAlertDetail(id) {
   const lossPoint = Number.isFinite(Number(alert.lat)) && Number.isFinite(Number(alert.lng))
     ? { lat: Number(alert.lat), lng: Number(alert.lng), type: 'loss' }
     : lossReference ? { lat: Number(lossReference.lat), lng: Number(lossReference.lng), type: 'loss' } : null;
-  const mapPoints = [lossPoint, ...latestSightings.map((item) => ({ lat: Number(item.lat), lng: Number(item.lng), type: 'sighting' }))].filter((point) => point && Number.isFinite(point.lat) && Number.isFinite(point.lng));
-  shell(`<a class="back-link" href="#/alerts">${icon('back')} Volver a alertas</a><section class="case-hero"><div><p class="eyebrow">Caso de búsqueda</p><div class="profile-hero__title"><h2>${escapeHtml(pet?.name || 'Mascota')}</h2>${statusBadge(alert.status)}</div><p>${escapeHtml(alert.searchMessage || 'Sin mensaje de búsqueda')}</p></div>${open ? `<div class="profile-hero__actions"><button class="button button--secondary" data-action="new-sighting" data-alert-id="${escapeHtml(alert.id)}">Registrar avistamiento</button><button class="button button--primary" data-action="resolve-alert" data-alert-id="${escapeHtml(alert.id)}">Mascota encontrada</button></div>` : ''}</section>
-    <section class="panel overview-map section-block"><div class="section-head"><div><h3>Últimos avistamientos</h3><p>${latestSightings.length} avistamiento${latestSightings.length === 1 ? '' : 's'} en el mapa</p></div><div class="overview-map__legend"><span><i class="overview-map__dot overview-map__dot--loss"></i>Pérdida</span><span><i class="overview-map__dot overview-map__dot--sighting"></i>Avistamiento</span></div></div>${mapPoints.length ? '<div class="overview-map__canvas" data-overview-map role="img" aria-label="Mapa de pérdida y últimos avistamientos"></div>' : emptyState('Sin puntos para mostrar', 'Registra una ubicación para verla en el mapa.', '', 'pin')}</section>
+  const viewerLocation = getReferenceLocation();
+  const nearbyViewerLocation = viewerLocation && lossPoint && haversineDistanceKm(lossPoint.lat, lossPoint.lng, viewerLocation.lat, viewerLocation.lng) <= 100 ? { ...viewerLocation, type: 'current' } : null;
+  const mapPoints = [lossPoint, ...latestSightings.map((item) => ({ lat: Number(item.lat), lng: Number(item.lng), type: 'sighting' })), nearbyViewerLocation].filter((point) => point && Number.isFinite(point.lat) && Number.isFinite(point.lng));
+  shell(`<a class="back-link" href="#/alerts">${icon('back')} Volver a alertas</a><section class="case-hero"><div><p class="eyebrow">Caso de búsqueda</p><div class="profile-hero__title"><h2>${escapeHtml(pet?.name || 'Mascota')}</h2>${statusBadge(alert.status)}</div><p>${escapeHtml(alert.searchMessage || 'Sin mensaje de búsqueda')}</p></div>${open ? `<div class="profile-hero__actions"><button class="button button--secondary" data-action="new-sighting" data-alert-id="${escapeHtml(alert.id)}">Registrar avistamiento</button>${isOwnerView() ? `<button class="button button--primary" data-action="resolve-alert" data-alert-id="${escapeHtml(alert.id)}">Mascota encontrada</button>` : ''}</div>` : ''}</section>
+    <section class="panel overview-map section-block"><div class="section-head"><div><h3>Últimos avistamientos</h3><p>${latestSightings.length} avistamiento${latestSightings.length === 1 ? '' : 's'} en el mapa</p></div><div class="overview-map__legend"><span><i class="overview-map__dot overview-map__dot--loss"></i>Pérdida</span><span><i class="overview-map__dot overview-map__dot--sighting"></i>Avistamiento</span>${nearbyViewerLocation ? '<span><i class="overview-map__dot overview-map__dot--current"></i>Tu ubicación</span>' : ''}</div></div>${mapPoints.length ? '<div class="overview-map__canvas" data-overview-map role="img" aria-label="Mapa de pérdida y últimos avistamientos"></div>' : emptyState('Sin puntos para mostrar', 'Registra una ubicación para verla en el mapa.', '', 'pin')}</section>
     <div class="detail-grid"><section class="panel"><div class="section-head"><h3>Información del caso</h3></div><dl class="data-list"><div><dt>Reportada</dt><dd>${formatDate(alert.lostAt)}</dd></div>${alert.placeReference ? `<div><dt>Lugar de referencia</dt><dd>${escapeHtml(alert.placeReference)}</dd></div>` : ''}${alert.circumstances ? `<div><dt>Circunstancias</dt><dd>${escapeHtml(alert.circumstances)}</dd></div>` : ''}<div><dt>Última ubicación conocida</dt><dd>${last ? `${escapeHtml(last.placeReference || `${last.lat}, ${last.lng}`)} · ${formatRelativeTime(last.recordedAt)}` : 'Sin ubicación previa'}</dd></div></dl></section><section class="panel"><div class="section-head"><div><h3>Historial</h3><p>Cambios importantes del caso.</p></div></div><div class="timeline">${events.map((event) => `<article class="timeline-item"><span class="timeline-item__dot"></span><div><strong>${escapeHtml(event.note)}</strong><p>${formatDate(event.occurredAt)}</p></div></article>`).join('') || '<p class="muted">Sin eventos registrados.</p>'}</div></section></div>
-    <section class="panel section-block"><div class="section-head"><div><h3>Reportes recientes</h3><p>Referencias por revisar; no confirman la identidad.</p></div>${open ? `<button class="text-button" data-action="new-sighting" data-alert-id="${escapeHtml(alert.id)}">Añadir ${icon('plus')}</button>` : ''}</div><div class="sighting-list">${sightings.map((item) => sightingCard(item, last, open)).join('') || emptyState('Sin avistamientos', 'Aún no hay reportes asociados.', '', 'pin')}</div></section>`, `Alerta de ${pet?.name || 'mascota'}`, 'alerts');
+    <section class="panel section-block"><div class="section-head"><div><h3>Reportes recientes</h3><p>Referencias por revisar; no confirman la identidad.</p></div>${open ? `<button class="text-button" data-action="new-sighting" data-alert-id="${escapeHtml(alert.id)}">Añadir ${icon('plus')}</button>` : ''}</div><div class="sighting-list">${sightings.map((item) => sightingCard(item, last, open && isOwnerView())).join('') || emptyState('Sin avistamientos', 'Aún no hay reportes asociados.', '', 'pin')}</div></section>`, `Alerta de ${pet?.name || 'mascota'}`, 'alerts');
   activeOverviewMap = initializeOverviewMap(document.querySelector('[data-overview-map]'), mapPoints);
 }
 
@@ -191,6 +214,7 @@ function renderSettings() {
 
 function renderNotFound() { shell(emptyState('Contenido no encontrado', 'La información solicitada no existe.', '<a class="button button--primary" href="#/home">Volver al inicio</a>'), 'No encontrado'); }
 function render() {
+  if (!viewerRole) return renderRoleSelection();
   if (!state.profile) return renderOnboarding();
   const current = route();
   if (current.page === 'home') return renderHome();
@@ -200,7 +224,7 @@ function render() {
   if (current.page === 'alerts' && current.id) return renderAlertDetail(decodeURIComponent(current.id));
   if (current.page === 'alerts') return renderAlerts();
   if (current.page === 'notifications') return renderNotifications();
-  if (current.page === 'settings') return renderSettings();
+  if (current.page === 'settings') return isOwnerView() ? renderSettings() : renderHome();
   return renderNotFound();
 }
 
@@ -316,6 +340,21 @@ document.addEventListener('click', async (event) => {
   const button = event.target.closest('[data-action]'); if (!button) return;
   const action = button.dataset.action;
   try {
+    if (!isOwnerView() && ['new-pet', 'edit-pet', 'new-location', 'new-alert', 'resolve-alert', 'edit-profile', 'delete-pet', 'reset', 'export'].includes(action)) throw new Error('Esta acción está disponible en la vista de propietario.');
+    if (action === 'change-view') { viewerRole = ''; window.sessionStorage.removeItem(VIEW_ROLE_KEY); render(); return; }
+    if (action === 'select-view') {
+      viewerRole = button.dataset.role;
+      window.sessionStorage.setItem(VIEW_ROLE_KEY, viewerRole);
+      button.disabled = true;
+      button.textContent = 'Obteniendo ubicación…';
+      await requestReferenceLocation();
+      if (!state.profile && !hasStoredRecords()) {
+        await importAllData(createDemoData({ alias: demoViewers.owner.alias, phone: '999 321 654', email: 'ana.torres@example.com', district: 'Miraflores', alternateContact: demoViewers.family.alias, acceptsLocalStorage: true }));
+      }
+      await refresh();
+      navigate('home');
+      return;
+    }
     if (action === 'close-dialog') return button.closest('dialog')?.close();
     if (action === 'remove-pet-photo') {
       const form = button.closest('#pet-form');
@@ -349,6 +388,8 @@ document.addEventListener('submit', async (event) => {
   const submitLabel = submitButton?.innerHTML;
   if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Guardando…'; }
   try {
+    const ownerOnlyForm = ['profile-form', 'pet-form', 'location-form', 'alert-form', 'resolution-form'].includes(form.id) || form.dataset.form === 'review-sighting';
+    if (!isOwnerView() && ownerOnlyForm) throw new Error('Esta acción está disponible en la vista de propietario.');
     if (form.id === 'profile-form') { const data = values(form); data.acceptsLocalStorage = form.elements.acceptsLocalStorage.checked; const profile = validateProfileInput(data); if (!profile.acceptsLocalStorage) throw new ValidationError('Debes aceptar el almacenamiento local para continuar.', 'acceptsLocalStorage'); if (!state.profile && !hasStoredRecords()) await importAllData(createDemoData(profile)); else await saveProfile(profile); form.closest('dialog')?.close(); await refresh('Perfil guardado.'); navigate('home'); }
     if (form.id === 'pet-form') { const pet = validatePetInput(values(form)); await savePet({ ...pet, id: form.dataset.id || undefined }); form.closest('dialog')?.close(); await refresh('Ficha guardada.'); }
     if (form.id === 'location-form') { const data = values(form); if (!data.lat || !data.lng) throw new ValidationError('Selecciona un punto en el mapa.', 'lat'); const location = validateLocationInput(data); await saveLocation(location); form.closest('dialog')?.close(); await refresh('Ubicación registrada.'); }

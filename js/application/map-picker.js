@@ -7,10 +7,41 @@ import { Map as VectorMap, Marker } from '../../vendor/maplibre/maplibre-gl.mjs'
 const mapByForm = new WeakMap();
 const clutterLayerPattern = /(?:^|[-_])(poi|shop|amenity|transit)(?:$|[-_])/i;
 const rasterTiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const REFERENCE_LOCATION_KEY = 'petguard_reference_location';
+const REFERENCE_LOCATION_ATTEMPTED_KEY = 'petguard_reference_location_attempted';
 
 /** @param {number} lat @param {number} lng */
 function validCoordinates(lat, lng) {
   return Number.isFinite(lat) && lat >= -90 && lat <= 90 && Number.isFinite(lng) && lng >= -180 && lng <= 180;
+}
+
+export function getReferenceLocation() {
+  try {
+    const stored = JSON.parse(window.sessionStorage.getItem(REFERENCE_LOCATION_KEY) || 'null');
+    return stored && validCoordinates(Number(stored.lat), Number(stored.lng))
+      ? { lat: Number(stored.lat), lng: Number(stored.lng) }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function requestReferenceLocation() {
+  const stored = getReferenceLocation();
+  if (stored) return Promise.resolve(stored);
+  if (!navigator.geolocation || window.sessionStorage.getItem(REFERENCE_LOCATION_ATTEMPTED_KEY)) return Promise.resolve(null);
+  window.sessionStorage.setItem(REFERENCE_LOCATION_ATTEMPTED_KEY, 'true');
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const location = { lat: coords.latitude, lng: coords.longitude };
+        window.sessionStorage.setItem(REFERENCE_LOCATION_KEY, JSON.stringify(location));
+        resolve(location);
+      },
+      () => resolve(null),
+      { enableHighAccuracy: false, maximumAge: 300_000, timeout: 5_000 }
+    );
+  });
 }
 
 /** @param {HTMLFormElement} form @param {'lat' | 'lng'} name */
@@ -57,22 +88,22 @@ function writeCoordinates(form, status, lat, lng) {
  * @param {(lat: number, lng: number) => void} selectLocation
  */
 function selectCurrentLocation(form, status, selectLocation) {
-  if (!navigator.geolocation) {
-    status.textContent = 'Selecciona el punto en el mapa; este dispositivo no comparte su ubicación.';
+  const stored = getReferenceLocation();
+  if (stored) {
+    selectLocation(stored.lat, stored.lng);
+    return;
+  }
+  if (!navigator.geolocation || window.sessionStorage.getItem(REFERENCE_LOCATION_ATTEMPTED_KEY)) {
+    status.textContent = 'Selecciona el punto en el mapa; no se compartió una ubicación para esta sesión.';
     return;
   }
 
   status.textContent = 'Buscando tu ubicación actual…';
   const alreadySelected = () => coordinateInput(form, 'lat').value !== '' && coordinateInput(form, 'lng').value !== '';
-  navigator.geolocation.getCurrentPosition(
-    ({ coords }) => {
-      if (form.isConnected && !alreadySelected()) selectLocation(coords.latitude, coords.longitude);
-    },
-    () => {
-      if (form.isConnected && !alreadySelected()) status.textContent = 'No pudimos obtener tu ubicación. Selecciona el punto en el mapa.';
-    },
-    { enableHighAccuracy: false, maximumAge: 300_000, timeout: 5_000 }
-  );
+  requestReferenceLocation().then((location) => {
+    if (form.isConnected && !alreadySelected() && location) selectLocation(location.lat, location.lng);
+    else if (form.isConnected && !alreadySelected()) status.textContent = 'No pudimos obtener tu ubicación. Selecciona el punto en el mapa.';
+  });
 }
 
 function supportsWebGL2() {
@@ -217,7 +248,7 @@ export function destroyCoordinatePicker(form) {
   mapByForm.delete(form);
 }
 
-/** @param {'loss' | 'sighting'} type */
+/** @param {'loss' | 'sighting' | 'current'} type */
 function overviewMarker(type) {
   const marker = document.createElement('span');
   marker.className = `overview-map__marker overview-map__marker--${type}`;
@@ -227,7 +258,7 @@ function overviewMarker(type) {
 
 /**
  * @param {HTMLElement} canvas
- * @param {{ lat: number, lng: number, type: 'loss' | 'sighting' }[]} points
+ * @param {{ lat: number, lng: number, type: 'loss' | 'sighting' | 'current' }[]} points
  */
 function initializeVectorOverview(canvas, points) {
   const first = points[0];
@@ -261,7 +292,7 @@ function initializeVectorOverview(canvas, points) {
 
 /**
  * @param {HTMLElement} canvas
- * @param {{ lat: number, lng: number, type: 'loss' | 'sighting' }[]} points
+ * @param {{ lat: number, lng: number, type: 'loss' | 'sighting' | 'current' }[]} points
  */
 function initializeRasterOverview(canvas, points) {
   const leaflet = /** @type {Window & { L?: typeof import('leaflet') }} */ (window).L;
@@ -285,8 +316,8 @@ function initializeRasterOverview(canvas, points) {
   points.forEach((point) => {
     leaflet.circleMarker([point.lat, point.lng], {
       className: `overview-map__marker overview-map__marker--${point.type}`,
-      color: point.type === 'loss' ? '#a62635' : '#145f52',
-      fillColor: point.type === 'loss' ? '#d84b5a' : '#23907d',
+      color: point.type === 'loss' ? '#a62635' : point.type === 'current' ? '#245fa6' : '#145f52',
+      fillColor: point.type === 'loss' ? '#d84b5a' : point.type === 'current' ? '#3f83cc' : '#23907d',
       fillOpacity: 1,
       radius: point.type === 'loss' ? 9 : 7,
       weight: 3
@@ -300,7 +331,7 @@ function initializeRasterOverview(canvas, points) {
 
 /**
  * @param {HTMLElement | null} canvas
- * @param {{ lat: number, lng: number, type: 'loss' | 'sighting' }[]} points
+ * @param {{ lat: number, lng: number, type: 'loss' | 'sighting' | 'current' }[]} points
  */
 export function initializeOverviewMap(canvas, points) {
   if (!canvas || !points.length) return null;
