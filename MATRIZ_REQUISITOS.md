@@ -23,7 +23,7 @@
 | RF-19 | Consultar alerta activa | Implementado | Detalle de caso con ubicación, historial y avistamientos |
 | RF-22 | Marcar mascota como encontrada | Implementado | Resolución transaccional del caso |
 | RF-23 | Registrar avistamiento | Implementado | Formulario asociado a caso abierto |
-| RF-24 | Listar avistamientos | Implementado | Lista cronológica en el caso |
+| RF-24 | Listar avistamientos | Implementado | Lista cronológica con consulta individual en mapa |
 | RF-25 | Revisar avistamiento | Implementado | Estados de revisión editables |
 | RF-26 | Comparar con última ubicación | Implementado | Distancia aproximada con Haversine |
 | RF-27 | Generar avisos internos | Implementado | Notificaciones con prioridad y mensajes |

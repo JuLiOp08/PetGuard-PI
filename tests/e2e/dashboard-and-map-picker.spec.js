@@ -244,6 +244,7 @@ test('una ubicación conocida se puede abrir en el mapa desde el historial', asy
   await expect(dialog.getByRole('heading', { name: 'Ubicación de Canela' })).toBeVisible();
   await expect(dialog.getByRole('img', { name: 'Mapa de ubicación conocida de Canela' })).toBeVisible();
   await expect(dialog.getByText('Parque del barrio')).toBeVisible();
+  await expect(dialog.locator('.maplibregl-ctrl-zoom-in, .leaflet-control-zoom-in')).toBeVisible();
 });
 
 test('el selector de mapa no depende de archivos publicados desde node_modules', async ({ page }) => {
@@ -299,10 +300,25 @@ test('el caso muestra la pérdida y los últimos avistamientos en un mapa', asyn
   await page.goto('/#/alerts');
   await page.locator('.alert-card').filter({ hasText: 'Nube' }).getByRole('link', { name: /Abrir caso/ }).click();
 
-  await expect(page.getByRole('img', { name: 'Mapa de pérdida y últimos avistamientos' })).toBeVisible();
+  const overviewMap = page.getByRole('img', { name: 'Mapa de pérdida y últimos avistamientos' });
+  await expect(overviewMap).toBeVisible();
+  await expect(overviewMap.locator('.maplibregl-ctrl-zoom-in, .leaflet-control-zoom-in')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Últimos avistamientos' })).toBeVisible();
   await expect(page.getByText('Vista cerca del parque')).toBeVisible();
   await expect(page.getByText('3 avistamientos en el mapa')).toBeVisible();
+  await expect(page.getByText(/Confianza:/)).toHaveCount(0);
+
+  const mapPanel = page.locator('.overview-map.section-block');
+  const caseDetails = page.locator('.case-details');
+  const gap = await Promise.all([mapPanel.boundingBox(), caseDetails.boundingBox()]);
+  expect(gap[0]).not.toBeNull();
+  expect(gap[1]).not.toBeNull();
+  expect(gap[1].y - (gap[0].y + gap[0].height)).toBeGreaterThanOrEqual(20);
+
+  await page.locator('.sighting').filter({ hasText: 'Vista cerca del parque' }).getByRole('button', { name: 'Ver en el mapa' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Avistamiento en el mapa' })).toBeVisible();
+  await expect(dialog.getByRole('img', { name: 'Mapa del avistamiento Vista cerca del parque' })).toBeVisible();
 });
 
 test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page }) => {
@@ -321,6 +337,7 @@ test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page 
 
   dialog = page.getByRole('dialog');
   await dialog.getByLabel('Descripción *').fill('Vista cerca del parque');
+  await expect(dialog.getByLabel('Confianza')).toHaveCount(0);
   await pickMapCenter(dialog);
   await dialog.getByRole('button', { name: 'Guardar avistamiento' }).click();
 

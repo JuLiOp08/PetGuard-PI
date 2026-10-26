@@ -1,7 +1,7 @@
 // @ts-check
 
 // @ts-ignore The browser imports the self-hosted build; JSDoc types come from the npm package.
-import { Map as VectorMap, Marker } from '../../vendor/maplibre/maplibre-gl.mjs';
+import { Map as VectorMap, Marker, NavigationControl } from '../../vendor/maplibre/maplibre-gl.mjs';
 
 /** @type {WeakMap<HTMLFormElement, { remove: () => void }>} */
 const mapByForm = new WeakMap();
@@ -268,9 +268,9 @@ function initializeVectorOverview(canvas, points) {
     center: [first.lng, first.lat],
     zoom: 15,
     attributionControl: true,
-    interactive: false,
     maxPitch: 0
   })));
+  map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
 
   map.once('style.load', () => {
     for (const layer of map.getStyle().layers || []) {
@@ -300,13 +300,13 @@ function initializeRasterOverview(canvas, points) {
   const first = points[0];
   const map = leaflet.map(canvas, {
     attributionControl: true,
-    boxZoom: false,
-    doubleClickZoom: false,
-    dragging: false,
-    keyboard: false,
-    scrollWheelZoom: false,
-    touchZoom: false,
-    zoomControl: false
+    boxZoom: true,
+    doubleClickZoom: true,
+    dragging: true,
+    keyboard: true,
+    scrollWheelZoom: true,
+    touchZoom: true,
+    zoomControl: true
   });
   leaflet.tileLayer(rasterTiles, {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',

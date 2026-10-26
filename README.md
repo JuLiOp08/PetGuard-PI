@@ -64,7 +64,7 @@ npm run lint
 - Historial de ubicaciones por mascota, con la última como reciente y las anteriores como antiguas.
 - Fichas editables con foto, datos principales e información complementaria de mascotas.
 - Casos de búsqueda con alerta, historial y resolución.
-- Avistamientos con confianza, revisión y distancia de referencia.
+- Avistamientos con revisión, distancia de referencia y consulta individual en mapa.
 - Centro de avisos con lectura y eliminación.
 - Respaldo JSON completo y borrado seguro de datos locales.
 
@@ -72,7 +72,7 @@ npm run lint
 
 - No incluye simulador de collar ni recorridos; ese módulo quedó fuera del alcance actual.
 - No incluye backend, PWA, GPS real ni difusión a terceros.
-- El selector usa un mapa vectorial simplificado de OpenFreeMap y requiere conexión mientras el formulario está abierto.
+- Los mapas usan OpenFreeMap y requieren conexión; permiten desplazamiento y controles de acercamiento y alejamiento.
 - Las pruebas con usuarios reales quedan pendientes.
 
 ## Matriz de requisitos
