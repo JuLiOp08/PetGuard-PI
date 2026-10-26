@@ -110,6 +110,29 @@ test('un familiar entra a los datos compartidos con permisos limitados', async (
   await expect(page.locator('[data-form="review-sighting"]')).toHaveCount(0);
 });
 
+test('el propietario puede actualizar los datos y la foto de una mascota', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/pets');
+  await page.getByText('Nube').first().click();
+  await page.getByRole('button', { name: 'Editar ficha' }).click();
+
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Color principal *').fill('Blanco y gris');
+  await dialog.locator('#pet-photo-input').setInputFiles({
+    name: 'nube.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
+  });
+  await expect(dialog.getByRole('img', { name: 'Vista previa de la foto seleccionada' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Guardar mascota' }).click();
+
+  await expect(page.getByText(/Gato · Pequeño · Blanco y gris/)).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Foto de Nube' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(/Gato · Pequeño · Blanco y gris/)).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Foto de Nube' })).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
+});
+
 test('la ubicación compartida al entrar se reutiliza como referencia del mapa', async ({ page, context }) => {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: -12.1191, longitude: -77.0349 });
@@ -185,6 +208,42 @@ test('una ubicación conocida se puede seleccionar en el mapa y guardar', async 
   await dialog.getByRole('button', { name: 'Guardar ubicación' }).click();
 
   await expect(page.getByText(`${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`)).toBeVisible();
+});
+
+test('solo la última ubicación de cada mascota se presenta como reciente', async ({ page }) => {
+  await createProfile(page);
+  await createPet(page);
+
+  for (const [recordedAt, placeReference] of [
+    ['2026-10-24T10:00', 'Ubicación anterior de Luna'],
+    ['2026-10-24T11:00', 'Ubicación vigente de Luna']
+  ]) {
+    await page.getByRole('button', { name: /Añadir/ }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Mascota *').selectOption({ label: 'Luna' });
+    await pickMapCenter(dialog);
+    await dialog.getByLabel('Fecha y hora *').fill(recordedAt);
+    await dialog.getByLabel('Lugar o referencia').fill(placeReference);
+    await dialog.getByRole('button', { name: 'Guardar ubicación' }).click();
+  }
+
+  await page.goto('/#/locations');
+  await expect(page.locator('.timeline-item').filter({ hasText: 'Ubicación vigente de Luna' })).toContainText('Reciente');
+  await expect(page.locator('.timeline-item').filter({ hasText: 'Ubicación anterior de Luna' })).toContainText('Antigua');
+  await expect(page.getByText('Intermedia', { exact: true })).toHaveCount(0);
+});
+
+test('una ubicación conocida se puede abrir en el mapa desde el historial', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/locations');
+
+  const location = page.locator('.timeline-item').filter({ hasText: 'Parque del barrio' }).first();
+  await location.getByRole('button', { name: 'Ver en el mapa' }).click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Ubicación de Canela' })).toBeVisible();
+  await expect(dialog.getByRole('img', { name: 'Mapa de ubicación conocida de Canela' })).toBeVisible();
+  await expect(dialog.getByText('Parque del barrio')).toBeVisible();
 });
 
 test('el selector de mapa no depende de archivos publicados desde node_modules', async ({ page }) => {

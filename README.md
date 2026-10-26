@@ -60,8 +60,8 @@ npm run lint
 - Perfil local persistente.
 - Datos de demostración al completar por primera vez un perfil local vacío.
 - Registro y eliminación de mascotas.
-- Registro manual de ubicaciones conocidas con validación de coordenadas y selección opcional en mapa.
-- Última ubicación por mascota con estado reciente/intermedia/antigua.
+- Registro manual de ubicaciones conocidas con validación de coordenadas, selección y consulta en mapa.
+- Historial de ubicaciones por mascota, con la última como reciente y las anteriores como antiguas.
 - Fichas editables con foto, datos principales e información complementaria de mascotas.
 - Casos de búsqueda con alerta, historial y resolución.
 - Avistamientos con confianza, revisión y distancia de referencia.

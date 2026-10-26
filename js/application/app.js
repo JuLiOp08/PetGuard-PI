@@ -4,7 +4,7 @@ import {
   saveLocation, savePet, saveProfile, saveSighting
 } from '../services/petguard-store.js';
 import {
-  computeLocationStatus, formatRelativeTime, haversineDistanceKm, locationStatusLabel,
+  formatRelativeTime, haversineDistanceKm, locationStatusLabel,
   validateImportPayload, validateLocationInput, validatePetInput, validateProfileInput,
   validateCoordinates, validateIsoDate, validateSightingInput, ValidationError
 } from '../domain/index.js';
@@ -120,8 +120,8 @@ function petCard(pet) {
 }
 
 function locationRow(location) {
-  const status = computeLocationStatus(location.recordedAt);
-  return `<article class="timeline-item"><span class="timeline-item__dot status-dot--${status}"></span><div><div class="timeline-item__head"><strong>${escapeHtml(petName(location.petId))}</strong><span>${locationStatusLabel(status)}</span></div><p>${escapeHtml(location.placeReference || `${Number(location.lat).toFixed(5)}, ${Number(location.lng).toFixed(5)}`)}</p><small>${formatDate(location.recordedAt)} · Registro manual</small><small class="coordinates">${Number(location.lat).toFixed(6)}, ${Number(location.lng).toFixed(6)}</small></div></article>`;
+  const status = latestLocation(location.petId)?.id === location.id ? 'recent' : 'old';
+  return `<article class="timeline-item"><span class="timeline-item__dot status-dot--${status}"></span><div><div class="timeline-item__head"><strong>${escapeHtml(petName(location.petId))}</strong><span>${locationStatusLabel(status)}</span></div><p>${escapeHtml(location.placeReference || `${Number(location.lat).toFixed(5)}, ${Number(location.lng).toFixed(5)}`)}</p><small>${formatDate(location.recordedAt)} · Registro manual</small><small class="coordinates">${Number(location.lat).toFixed(6)}, ${Number(location.lng).toFixed(6)}</small><button class="text-button" type="button" data-action="view-location-map" data-id="${escapeHtml(location.id)}">Ver en el mapa</button></div></article>`;
 }
 
 function renderHome() {
@@ -280,7 +280,7 @@ function openDialog(title, body) {
   const dialog = document.createElement('dialog'); dialog.id = 'app-dialog'; dialog.className = 'dialog';
   dialog.innerHTML = `<div class="dialog__head"><div><p class="eyebrow">PetGuard</p><h2>${escapeHtml(title)}</h2></div><button class="icon-button" type="button" data-action="close-dialog" aria-label="Cerrar">${icon('close')}</button></div><div class="dialog__body">${body}</div>`;
   connectFieldErrors(dialog);
-  document.body.append(dialog); dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); }); dialog.addEventListener('close', () => { destroyCoordinatePicker(dialog.querySelector('form')); dialog.remove(); }); dialog.showModal(); initializeCoordinatePicker(dialog.querySelector('form')); dialog.querySelector('input, select, textarea, button')?.focus();
+  document.body.append(dialog); dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); }); dialog.addEventListener('close', () => { destroyCoordinatePicker(dialog.querySelector('form')); if (dialog.querySelector('[data-overview-map]')) { activeOverviewMap?.remove(); activeOverviewMap = null; } dialog.remove(); }); dialog.showModal(); initializeCoordinatePicker(dialog.querySelector('form')); dialog.querySelector('input, select, textarea, button')?.focus();
 }
 
 function values(form) { return Object.fromEntries(new FormData(form).entries()); }
@@ -359,6 +359,14 @@ document.addEventListener('click', async (event) => {
       form.querySelector('[data-photo-preview]').classList.remove('has-photo');
       form.querySelector('[data-photo-preview]').innerHTML = `<span aria-hidden="true">${icon('pets')}</span><small>Sin foto</small>`;
       button.hidden = true;
+      return;
+    }
+    if (action === 'view-location-map') {
+      const knownLocation = state.locations.find((item) => item.id === button.dataset.id);
+      if (!knownLocation) return toast('La ubicación ya no existe.');
+      const name = petName(knownLocation.petId);
+      openDialog(`Ubicación de ${name}`, `<section class="overview-map"><p>${escapeHtml(knownLocation.placeReference || 'Punto registrado')}</p><div class="overview-map__canvas" data-overview-map role="img" aria-label="Mapa de ubicación conocida de ${escapeHtml(name)}"></div><p class="coordinates">${Number(knownLocation.lat).toFixed(6)}, ${Number(knownLocation.lng).toFixed(6)}</p></section>`);
+      activeOverviewMap = initializeOverviewMap(document.querySelector('#app-dialog [data-overview-map]'), [{ lat: Number(knownLocation.lat), lng: Number(knownLocation.lng), type: 'sighting' }]);
       return;
     }
     if (action === 'new-pet') return openDialog('Registrar mascota', petForm());

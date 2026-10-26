@@ -15,10 +15,10 @@
 | RF-03 | Registrar mascota | Implementado | Formulario de alta + almacenamiento local |
 | RF-04 | Listar mascotas | Implementado | Vista de lista con estado y acciones |
 | RF-05 | Consultar detalle de mascota | Implementado | Pantalla de detalle con última ubicación |
-| RF-06 | Editar mascota | Implementado | Formulario de edición sin perder relaciones |
+| RF-06 | Editar mascota | Implementado | Formulario de edición de datos y foto sin perder relaciones |
 | RF-07 | Eliminar mascota | Implementado | Eliminación con confirmación |
 | RF-09 | Registrar coordenada manual | Implementado | Formulario de ubicación conocida con validación de coordenadas |
-| RF-11 | Consultar última ubicación | Implementado | Cálculo de estado y visualización |
+| RF-11 | Consultar última ubicación | Implementado | La última se presenta como reciente y el historial anterior como antiguo, con consulta en mapa |
 | RF-18 | Crear alerta de extravío | Implementado | Activación local con estado lost |
 | RF-19 | Consultar alerta activa | Implementado | Detalle de caso con ubicación, historial y avistamientos |
 | RF-22 | Marcar mascota como encontrada | Implementado | Resolución transaccional del caso |
@@ -46,6 +46,9 @@
 | Ciclo completo de caso de búsqueda | test de integración IndexedDB | OK |
 | Eliminación en cascada | test de integración IndexedDB | OK |
 | Importación de respaldo versión 1 | test de integración IndexedDB | OK |
+| Edición de datos y foto de mascota | test E2E | OK |
+| Vigencia e historial de ubicaciones | test E2E | OK |
+| Consulta de ubicación conocida en mapa | test E2E | OK |
 | Rollback de importación fallida | test de integración IndexedDB | OK |
 
 ## Requisitos pendientes o parciales
