@@ -114,14 +114,6 @@ function profileFields(profile = {}) {
     <div class="check-field"><label class="check"><input type="checkbox" name="acceptsLocalStorage" ${profile.acceptsLocalStorage ? 'checked' : ''}><span>Acepto que la información se guarde únicamente en este navegador.</span></label><small class="field-error" data-error-for="acceptsLocalStorage"></small></div>`;
 }
 
-function renderOnboarding() {
-  activeOverviewMap?.remove();
-  activeOverviewMap = null;
-  app.innerHTML = `<main class="onboarding"><section class="onboarding__intro"><a class="brand brand--light" href="#"><span class="brand__mark">P</span><span>PetGuard</span></a><div><p class="eyebrow">Información lista cuando importa</p><h1>Protege su historia. Organiza su búsqueda.</h1><p>Guarda fichas, ubicaciones conocidas y casos de búsqueda en este dispositivo.</p></div><ul class="feature-list"><li>${icon('check')} Sin cuentas</li><li>${icon('check')} Respaldo exportable</li><li>${icon('check')} Datos bajo tu control</li></ul></section>
-    <section class="onboarding__form"><div class="form-card"><p class="step">Configuración inicial</p><h2>Crea tu perfil local</h2><p class="muted">Solo necesitamos un nombre. Los datos de contacto son opcionales.</p><form id="profile-form" novalidate><div class="form-error" role="alert" tabindex="-1" hidden></div>${profileFields({ acceptsLocalStorage: true })}<button class="button button--primary button--full" type="submit">Entrar a PetGuard ${icon('arrow')}</button></form></div></section></main>`;
-  connectFieldErrors(app);
-}
-
 function petCard(pet) {
   const location = latestLocation(pet.id);
   return `<article class="pet-card"><a class="pet-card__main" href="#/pets/${encodeURIComponent(pet.id)}">${petPortrait(pet)}<div><div class="pet-card__title"><h3>${escapeHtml(pet.name)}</h3>${statusBadge(pet.status)}</div><p>${escapeHtml(label(pet.species))} · ${escapeHtml(pet.color)}</p><small>${location ? `${icon('pin')} ${formatRelativeTime(location.recordedAt)}` : 'Sin ubicación registrada'}</small></div></a><a class="card-arrow" href="#/pets/${encodeURIComponent(pet.id)}" aria-label="Ver ficha de ${escapeHtml(pet.name)}">${icon('arrow')}</a></article>`;
@@ -215,7 +207,11 @@ function renderSettings() {
 function renderNotFound() { shell(emptyState('Contenido no encontrado', 'La información solicitada no existe.', '<a class="button button--primary" href="#/home">Volver al inicio</a>'), 'No encontrado'); }
 function render() {
   if (!viewerRole) return renderRoleSelection();
-  if (!state.profile) return renderOnboarding();
+  if (!state.profile) {
+    viewerRole = '';
+    window.sessionStorage.removeItem(VIEW_ROLE_KEY);
+    return renderRoleSelection();
+  }
   const current = route();
   if (current.page === 'home') return renderHome();
   if (current.page === 'pets' && current.id) return renderPetDetail(decodeURIComponent(current.id));

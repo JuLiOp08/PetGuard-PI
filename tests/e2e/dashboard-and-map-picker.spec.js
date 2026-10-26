@@ -79,6 +79,16 @@ test('las aclaraciones visibles usan frases breves y naturales', async ({ page }
   await expect(page.getByText('Un avistamiento sirve como referencia y debe revisarse. No confirma que sea la mascota.')).toBeVisible();
 });
 
+test('sin perfil local se vuelve directamente a elegir propietario o familiar', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/settings');
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Borrar datos' }).click();
+
+  await expect(page.getByRole('heading', { name: '¿Cómo quieres entrar?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Crea tu perfil local' })).toHaveCount(0);
+});
+
 test('un familiar entra a los datos compartidos con permisos limitados', async ({ page }) => {
   await page.goto('/');
 
