@@ -1,18 +1,98 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PetGuard</title>
-    <meta name="description" content="PetGuard organiza la información necesaria para localizar y proteger a tus mascotas." />
-    <meta name="theme-color" content="#145f52" />
-    <link rel="stylesheet" href="./vendor/maplibre/maplibre-gl.css" />
-    <link rel="stylesheet" href="./vendor/leaflet/leaflet.css" />
-    <link rel="stylesheet" href="./css/app.css" />
-  </head>
-  <body>
-    <div id="app"></div>
-    <script src="./vendor/leaflet/leaflet.js"></script>
-    <script type="module" src="./js/application/app.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetGuard - Localización de Luna</title>
+  
+  <!-- Estilos de Leaflet para el Mapa -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Librería cliente de Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background-color: #f4f6f9; color: #333; padding: 15px; }
+    .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    h1 { font-size: 22px; color: #2c3e50; text-align: center; margin-bottom: 4px; }
+    p.subtitle { text-align: center; color: #7f8c8d; font-size: 13px; margin-bottom: 18px; }
+    .card { background: #eaf2f8; border-left: 5px solid #2980b9; padding: 12px; border-radius: 6px; margin-bottom: 15px; }
+    .card-title { font-weight: bold; font-size: 16px; color: #1f618d; margin-bottom: 6px; }
+    .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px; }
+    #map { height: 280px; width: 100%; border-radius: 8px; border: 1px solid #ccc; }
+    .btn { display: block; width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 12px; text-align: center; text-decoration: none; }
+    .btn:hover { background: #219150; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🐾 PetGuard</h1>
+    <p class="subtitle">Monitoreo en Tiempo Real</p>
+
+    <div class="card">
+      <div class="card-title">Mascota: <span id="pet-name">Luna</span></div>
+      <div class="info-row">
+        <span>Batería:</span>
+        <strong id="pet-battery">--%</strong>
+      </div>
+      <div class="info-row">
+        <span>Última lectura:</span>
+        <strong id="pet-time">Cargando...</strong>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <button class="btn" onclick="actualizarUbicacion()">🔄 Actualizar Ubicación</button>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Configuración de Supabase
+    const supabaseUrl = "https://fyxventfaduuxlwchbuj.supabase.co";
+    const supabaseKey = "sb_publishable_JAlo27lxjjEXTJDIC3zNsg_3lxE0";
+    const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Inicializar el mapa con vista predeterminada
+    let map = L.map('map').setView([-12.0854, -77.0512], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let marker = L.marker([-12.0854, -77.0512]).addTo(map).bindPopup('<b>Luna está aquí</b>').openPopup();
+
+    async function actualizarUbicacion() {
+      const { data, error } = await _supabase
+        .from('telemetry')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error("Error al obtener ubicación:", error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const luna = data[0];
+        document.getElementById('pet-name').innerText = luna.pet_name;
+        document.getElementById('pet-battery').innerText = luna.battery + "%";
+
+        const fecha = new Date(luna.created_at);
+        const ahora = new Date();
+        const mins = Math.floor((ahora - fecha) / 60000);
+        document.getElementById('pet-time').innerText = mins <= 0 ? "Hace un momento" : `Hace ${mins} min`;
+
+        marker.setLatLng([luna.latitude, luna.longitude]);
+        map.panTo([luna.latitude, luna.longitude]);
+      }
+    }
+
+    actualizarUbicacion();
+  </script>
+
+</body>
 </html>
