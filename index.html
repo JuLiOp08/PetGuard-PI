@@ -7,8 +7,6 @@
   
   <!-- Estilos de Leaflet para el Mapa -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Librería cliente de Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -50,12 +48,11 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // Configuración de Supabase
-    const supabaseUrl = "https://fyxventfaduuxlwchbuj.supabase.co";
-    const supabaseKey = "sb_publishable_JAlo27lxjjEXTJDIC3zNsg_3lxE0";
-    const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    // Configuración API REST Supabase
+    const endpoint = "https://fyxventfaduuxlwchbuj.supabase.co/rest/v1/telemetry?select=*&order=created_at.desc&limit=1";
+    const apiKey = "sb_publishable_JAlo27lxjjEXTJDIC3zNsg_3lxE0";
 
-    // Inicializar el mapa con vista predeterminada
+    // Inicializar mapa
     let map = L.map('map').setView([-12.0854, -77.0512], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -65,29 +62,34 @@
     let marker = L.marker([-12.0854, -77.0512]).addTo(map).bindPopup('<b>Luna está aquí</b>').openPopup();
 
     async function actualizarUbicacion() {
-      const { data, error } = await _supabase
-        .from('telemetry')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1);
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'apikey': apiKey,
+            'Authorization': 'Bearer ' + apiKey
+          }
+        });
 
-      if (error) {
-        console.error("Error al obtener ubicación:", error);
-        return;
-      }
+        const data = await response.json();
 
-      if (data && data.length > 0) {
-        const luna = data[0];
-        document.getElementById('pet-name').innerText = luna.pet_name;
-        document.getElementById('pet-battery').innerText = luna.battery + "%";
+        if (data && data.length > 0) {
+          const luna = data[0];
+          document.getElementById('pet-name').innerText = luna.pet_name || 'Luna';
+          document.getElementById('pet-battery').innerText = (luna.battery || 85) + "%";
 
-        const fecha = new Date(luna.created_at);
-        const ahora = new Date();
-        const mins = Math.floor((ahora - fecha) / 60000);
-        document.getElementById('pet-time').innerText = mins <= 0 ? "Hace un momento" : `Hace ${mins} min`;
+          const fecha = new Date(luna.created_at);
+          const ahora = new Date();
+          const mins = Math.floor((ahora - fecha) / 60000);
+          document.getElementById('pet-time').innerText = isNaN(mins) || mins <= 0 ? "Hace un momento" : `Hace ${mins} min`;
 
-        marker.setLatLng([luna.latitude, luna.longitude]);
-        map.panTo([luna.latitude, luna.longitude]);
+          if (luna.latitude && luna.longitude) {
+            marker.setLatLng([luna.latitude, luna.longitude]);
+            map.panTo([luna.latitude, luna.longitude]);
+          }
+        }
+      } catch (err) {
+        console.error("Error consultando Supabase:", err);
       }
     }
 
