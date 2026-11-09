@@ -400,6 +400,26 @@ test('el caso activo orienta al propietario sobre foto contacto y reportes pendi
   await expect(page.getByRole('heading', { name: 'Alerta de Nube' })).toBeVisible();
 });
 
+test('el historial muestra los avistamientos relevantes y la revisión solo ofrece decisiones finales', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/alerts/demo-alert-nube');
+  const history = page.locator('.case-details .timeline');
+  await expect(history).toContainText('Un gato con placa redonda cruzó hacia los jardines.');
+  await expect(history).not.toContainText('Vista cerca del parque');
+
+  const report = page.locator('.sighting').filter({ hasText: 'Vista cerca del parque' });
+  await expect(report.getByText('En revisión')).toBeVisible();
+  const decision = report.getByRole('combobox', { name: 'Decisión del avistamiento' });
+  await expect(decision.locator('option')).toHaveText(['Elegir resultado', 'Relevante', 'Descartado']);
+  await decision.selectOption('relevant');
+  await report.getByRole('button', { name: 'Actualizar' }).click();
+  await expect(history).toContainText('Vista cerca del parque');
+
+  await report.getByRole('combobox', { name: 'Decisión del avistamiento' }).selectOption('discarded');
+  await report.getByRole('button', { name: 'Actualizar' }).click();
+  await expect(history).not.toContainText('Vista cerca del parque');
+});
+
 test('el propietario descarga una ficha sin divulgar el teléfono hasta elegirlo', async ({ page }) => {
   await createProfile(page);
   await page.goto('/#/alerts');

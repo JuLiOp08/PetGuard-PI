@@ -142,7 +142,7 @@ export function saveSighting(sightingInput) {
   return withTransaction(['alerts', 'sightings', 'notifications'], 'readwrite', async (tx) => {
     const alert = await get(tx, 'alerts', sightingInput.alertId);
     if (!alert || !['active', 'paused'].includes(alert.status)) throw new ConflictError('Solo puedes añadir avistamientos a un caso abierto.');
-    const record = { ...sightingInput, id: id(), reviewStatus: 'new', createdAt: now(), updatedAt: now() };
+    const record = { ...sightingInput, id: id(), reviewStatus: 'in_review', createdAt: now(), updatedAt: now() };
     await put(tx, 'sightings', record);
     await put(tx, 'notifications', notification({
       title: 'Nuevo avistamiento', message: 'Se registró información para revisar.', priority: 'high', entityType: 'alert', entityId: alert.id

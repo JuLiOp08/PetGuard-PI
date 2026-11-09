@@ -80,7 +80,7 @@ test('un avistamiento conserva un estado de revisión válido', async () => {
   await assert.rejects(() => reviewSighting(sighting.id, 'invented'), /estado de revisión/i);
 
   const current = await loadAppData();
-  assert.equal(current.sightings[0].reviewStatus, 'new');
+  assert.equal(current.sightings[0].reviewStatus, 'in_review');
 });
 
 test('los registros rutinarios no llenan los avisos y un caso conserva los avisos relevantes', async () => {

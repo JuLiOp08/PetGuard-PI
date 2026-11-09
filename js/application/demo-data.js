@@ -243,7 +243,7 @@ export function createDemoData(profile, referenceTime = new Date()) {
         placeReference: 'Junto a la entrada norte',
         reporterAlias: 'Vecina del sector',
         reporterPhone: '',
-        reviewStatus: 'new',
+        reviewStatus: 'in_review',
         createdAt: minutesBefore(referenceTime, 20),
         updatedAt
       },
@@ -303,7 +303,7 @@ export function createDemoData(profile, referenceTime = new Date()) {
         placeReference: 'Inicio de la ciclovía',
         reporterAlias: 'Carlos Torres',
         reporterPhone: '',
-        reviewStatus: 'new',
+        reviewStatus: 'in_review',
         createdAt: minutesBefore(referenceTime, 5),
         updatedAt
       },
