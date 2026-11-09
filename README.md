@@ -66,13 +66,18 @@ npm run lint
 - Casos de búsqueda con alerta, historial y resolución.
 - Avistamientos con revisión, distancia de referencia y consulta individual en mapa.
 - Centro de avisos con lectura y eliminación.
+- Los avisos de búsqueda abren el caso correspondiente.
+- Guía breve en cada caso activo para revisar foto, contacto y reportes.
+- Ficha de búsqueda descargable en SVG; el propietario elige qué datos de contacto incluir.
+- Instalación como aplicación web y acceso sin conexión a fichas y casos guardados en el navegador.
 - Respaldo JSON completo y borrado seguro de datos locales.
 
 ## Limitaciones reales
 
 - No incluye simulador de collar ni recorridos; ese módulo quedó fuera del alcance actual.
-- No incluye backend, PWA, GPS real ni difusión a terceros.
+- No incluye backend, GPS real ni difusión a terceros.
 - Los mapas usan OpenFreeMap y requieren conexión; permiten desplazamiento y controles de acercamiento y alejamiento.
+- El acceso sin conexión depende de haber abierto la aplicación previamente en ese navegador y de conservar sus datos locales.
 - Las pruebas con usuarios reales quedan pendientes.
 
 ## Matriz de requisitos

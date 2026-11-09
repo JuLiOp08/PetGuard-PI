@@ -19,6 +19,12 @@ export default [
     }
   },
   {
+    files: ['sw.js'],
+    languageOptions: {
+      globals: { caches: 'readonly', fetch: 'readonly', Response: 'readonly', self: 'readonly', URL: 'readonly' }
+    }
+  },
+  {
     files: ['tests/**/*.js', 'playwright.config.js'],
     languageOptions: {
       ecmaVersion: 'latest',

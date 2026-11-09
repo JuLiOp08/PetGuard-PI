@@ -1,0 +1,17 @@
+{
+  "name": "PetGuard",
+  "short_name": "PetGuard",
+  "id": "./",
+  "description": "Fichas, ubicaciones conocidas y casos de búsqueda de mascotas.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#edf3f0",
+  "theme_color": "#145f52",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

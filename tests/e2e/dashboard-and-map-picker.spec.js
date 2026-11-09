@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 test.afterEach(async ({ page }) => {
   await page.goto('about:blank');
@@ -7,7 +8,7 @@ test.afterEach(async ({ page }) => {
 async function createProfile(page, role = 'owner') {
   await page.goto('/');
   await page.getByRole('button', { name: role === 'owner' ? /Entrar como propietario/ : /Entrar como familiar/ }).click();
-  await expect(page.getByRole('heading', { name: 'Todo lo importante, a mano.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: role === 'owner' ? 'Tus mascotas y casos de búsqueda' : 'Mascotas y casos compartidos' })).toBeVisible();
 }
 
 async function createPet(page) {
@@ -77,6 +78,19 @@ test('las aclaraciones visibles usan frases breves y naturales', async ({ page }
 
   await page.getByRole('button', { name: 'Registrar avistamiento' }).first().click();
   await expect(page.getByText('Un avistamiento sirve como referencia y debe revisarse. No confirma que sea la mascota.')).toBeVisible();
+});
+
+test('los encabezados explican el propósito de cada vista con un tono claro', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Organiza la búsqueda de tus mascotas' })).toBeVisible();
+  await page.getByRole('button', { name: 'Entrar como propietario' }).click();
+  await expect(page.getByRole('heading', { name: 'Tus mascotas y casos de búsqueda' })).toBeVisible();
+  await expect(page.getByText('Consulta fichas, ubicaciones conocidas y avisos recientes.')).toBeVisible();
+
+  await page.goto('/#/pets');
+  await expect(page.getByRole('heading', { name: 'Fichas de mascotas' })).toBeVisible();
+  await page.goto('/#/settings');
+  await expect(page.getByRole('heading', { name: 'Datos y respaldo' })).toBeVisible();
 });
 
 test('sin perfil local se vuelve directamente a elegir propietario o familiar', async ({ page }) => {
@@ -206,11 +220,19 @@ test('el centro de avisos oculta registros rutinarios anteriores y conserva las 
   await page.locator('#import-file').setInputFiles({
     name: 'respaldo.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup))
   });
-  await expect(page.getByRole('heading', { name: 'Todo lo importante, a mano.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tus mascotas y casos de búsqueda' })).toBeVisible();
   await expect(page.locator('.metric').filter({ hasText: 'Avisos nuevos' }).locator('strong')).toHaveText('1');
   await page.goto('/#/notifications');
   await expect(page.locator('.notification')).toHaveCount(1);
   await expect(page.getByText('Alerta activada')).toBeVisible();
+});
+
+test('un aviso de búsqueda abre el caso relacionado', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/notifications');
+  await page.locator('.notification').filter({ hasText: 'Nube fue marcada como extraviada.' })
+    .getByRole('link', { name: 'Abrir caso' }).click();
+  await expect(page.getByRole('heading', { name: 'Alerta de Nube' })).toBeVisible();
 });
 
 test('los iconos del resumen están centrados dentro de sus cuadrados', async ({ page }) => {
@@ -362,6 +384,71 @@ test('el caso muestra la pérdida y los últimos avistamientos en un mapa', asyn
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('heading', { name: 'Avistamiento en el mapa' })).toBeVisible();
   await expect(dialog.getByRole('img', { name: 'Mapa del avistamiento Vista cerca del parque' })).toBeVisible();
+});
+
+test('el caso activo orienta al propietario sobre foto contacto y reportes pendientes', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/alerts');
+  await page.locator('.alert-card').filter({ hasText: 'Nube' }).getByRole('link', { name: /Abrir caso/ }).click();
+  const guide = page.getByRole('region', { name: 'Preparar la búsqueda' });
+  await expect(guide.getByText('Foto de referencia')).toBeVisible();
+  await expect(guide.getByText('Datos de contacto')).toBeVisible();
+  await expect(guide.getByText('Reportes por revisar')).toBeVisible();
+  await expect(guide.getByRole('link', { name: 'Abrir ficha' })).toHaveAttribute('href', /#\/pets\/demo-pet-nube/);
+  await guide.getByRole('button', { name: 'Ver reportes' }).click();
+  await expect(page.getByRole('heading', { name: 'Reportes recientes' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Alerta de Nube' })).toBeVisible();
+});
+
+test('el propietario descarga una ficha sin divulgar el teléfono hasta elegirlo', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/alerts');
+  await page.locator('.alert-card').filter({ hasText: 'Nube' }).getByRole('link', { name: /Abrir caso/ }).click();
+  await page.getByRole('button', { name: 'Preparar ficha' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel('Incluir teléfono')).not.toBeChecked();
+  await dialog.getByLabel('Incluir teléfono').check();
+  const downloadPromise = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Descargar ficha' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^petguard-ficha-nube\.svg$/);
+  const poster = await readFile(await download.path(), 'utf8');
+  expect(poster).toContain('999 321 654');
+  expect(poster).not.toContain('ana.torres@example.com');
+  await expect(dialog).toHaveCount(0);
+});
+
+test('las fichas y casos siguen disponibles sin conexión y el mapa explica su límite', async ({ page, context }) => {
+  await createProfile(page);
+  await page.waitForFunction(() => Boolean(globalThis.navigator.serviceWorker?.controller), undefined, { timeout: 10000 });
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('status').filter({ hasText: 'Sin conexión' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tus mascotas y casos de búsqueda' })).toBeVisible();
+  await page.goto('/#/pets');
+  await expect(page.getByText('Nube').first()).toBeVisible();
+  await page.goto('/#/alerts/demo-alert-nube');
+  await expect(page.getByText('El mapa necesita conexión a Internet.')).toBeVisible();
+});
+
+test('los formularios muestran primero lo esencial y conservan detalles opcionales', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/locations');
+  await page.getByRole('button', { name: 'Añadir ubicación' }).click();
+  let dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel('Lugar o referencia')).toBeVisible();
+  await expect(dialog.getByLabel('Nota')).toBeHidden();
+  await dialog.getByText('Más detalles').click();
+  await expect(dialog.getByLabel('Nota')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cerrar' }).click();
+
+  await page.goto('/#/alerts/demo-alert-nube');
+  await page.getByRole('button', { name: 'Registrar avistamiento' }).first().click();
+  dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel('Descripción *')).toBeVisible();
+  await expect(dialog.getByLabel('Informante')).toBeHidden();
+  await dialog.getByText('Más detalles').click();
+  await expect(dialog.getByLabel('Informante')).toBeVisible();
 });
 
 test('un avistamiento se puede seleccionar en el mapa y guardar', async ({ page }) => {

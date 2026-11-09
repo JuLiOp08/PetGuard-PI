@@ -228,6 +228,12 @@ export function initializeCoordinatePicker(form) {
   const status = form.querySelector('[data-coordinate-map-status]');
   if (!(canvas instanceof HTMLElement) || !(status instanceof HTMLElement)) return;
 
+  if (!navigator.onLine) {
+    canvas.textContent = 'El mapa necesita conexión a Internet.';
+    status.textContent = 'Conéctate para seleccionar un punto. Tus fichas y casos siguen disponibles.';
+    return;
+  }
+
   const initial = initialView(form);
   let map;
   if (supportsWebGL2()) {
@@ -335,6 +341,10 @@ function initializeRasterOverview(canvas, points) {
  */
 export function initializeOverviewMap(canvas, points) {
   if (!canvas || !points.length) return null;
+  if (!navigator.onLine) {
+    canvas.textContent = 'El mapa necesita conexión a Internet.';
+    return null;
+  }
   let map;
   if (supportsWebGL2()) {
     try {

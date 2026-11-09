@@ -9,7 +9,7 @@
     "test:integration": "node --test tests/integration/petguard-store.test.js",
     "test:e2e": "playwright test",
     "typecheck": "tsc --project jsconfig.json",
-    "lint": "eslint js tests playwright.config.js",
+    "lint": "eslint js tests playwright.config.js sw.js",
     "start": "python -m http.server 4173"
   },
   "dependencies": {
