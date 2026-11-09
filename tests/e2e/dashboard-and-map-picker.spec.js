@@ -235,6 +235,48 @@ test('un aviso de búsqueda abre el caso relacionado', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Alerta de Nube' })).toBeVisible();
 });
 
+test('los listados extensos se paginan y las tarjetas conservan su ancho', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/settings');
+  const timestamp = (index) => new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString();
+  const backup = {
+    version: 2, exportedAt: timestamp(20),
+    profile: { id: 'owner_local', alias: 'Ana Torres', acceptsLocalStorage: true },
+    pets: Array.from({ length: 8 }, (_, i) => ({ id: `pet-${i}`, name: `Mascota ${i}`, species: 'dog', color: 'Marrón', size: 'medium', status: 'lost' })),
+    locations: Array.from({ length: 8 }, (_, i) => ({ id: `location-${i}`, petId: 'pet-0', lat: 4.65, lng: -74.08, recordedAt: timestamp(i), placeReference: `Lugar ${i}` })),
+    alerts: Array.from({ length: 8 }, (_, i) => ({ id: `alert-${i}`, petId: `pet-${i}`, status: 'active', lostAt: timestamp(i), createdAt: timestamp(i), searchMessage: `Búsqueda ${i}`, lat: 4.65, lng: -74.08 })),
+    alertEvents: Array.from({ length: 8 }, (_, i) => ({ id: `event-${i}`, alertId: 'alert-0', note: `Cambio ${i}`, occurredAt: timestamp(i) })),
+    sightings: Array.from({ length: 8 }, (_, i) => ({ id: `sighting-${i}`, alertId: 'alert-0', lat: 4.65, lng: -74.08, seenAt: timestamp(i), description: `Reporte ${i}`, reviewStatus: 'in_review' })),
+    notifications: Array.from({ length: 8 }, (_, i) => ({ id: `notice-${i}`, title: `Aviso ${i}`, entityType: 'alert', entityId: 'alert-0', read: false, createdAt: timestamp(i) })),
+    settings: []
+  };
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.locator('#import-file').setInputFiles({ name: 'respaldo.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
+  await expect(page.getByRole('heading', { name: 'Tus mascotas y casos de búsqueda' })).toBeVisible();
+
+  for (const [route, selector, key] of [
+    ['pets', '.pet-grid--wide .pet-card', 'pets'],
+    ['alerts', '.alert-grid .alert-card', 'alerts'],
+    ['locations', '.timeline--roomy .timeline-item', 'locations'],
+    ['notifications', '.notification-list .notification', 'notifications'],
+    ['alerts/alert-0', '.sighting-list .sighting', 'sightings'],
+    ['alerts/alert-0', '.case-details .timeline .timeline-item', 'case-history'],
+    ['pets/pet-0', '.detail-grid .timeline .timeline-item', 'pet-locations']
+  ]) {
+    await page.goto(`/#/${route}`);
+    const cards = page.locator(selector);
+    await expect(cards).toHaveCount(6);
+    const firstWidth = (await cards.first().boundingBox()).width;
+    await page.locator(`[data-pagination-key="${key}"]`).getByRole('button', { name: 'Siguiente' }).click();
+    await expect(cards).toHaveCount(2);
+    if (key === 'pets' || key === 'alerts') {
+      expect(Math.abs((await cards.first().boundingBox()).width - firstWidth)).toBeLessThan(2);
+    }
+    await page.locator(`[data-pagination-key="${key}"]`).getByRole('button', { name: 'Anterior' }).click();
+    await expect(cards).toHaveCount(6);
+  }
+});
+
 test('los iconos del resumen están centrados dentro de sus cuadrados', async ({ page }) => {
   await createProfile(page);
 
@@ -293,9 +335,21 @@ test('solo la última ubicación de cada mascota se presenta como reciente', asy
   }
 
   await page.goto('/#/locations');
-  await expect(page.locator('.timeline-item').filter({ hasText: 'Ubicación vigente de Luna' })).toContainText('Reciente');
-  await expect(page.locator('.timeline-item').filter({ hasText: 'Ubicación anterior de Luna' })).toContainText('Antigua');
-  await expect(page.getByText('Intermedia', { exact: true })).toHaveCount(0);
+  const rows = page.locator('.timeline--roomy .timeline-item');
+  const next = page.locator('[data-pagination-key="locations"]').getByRole('button', { name: 'Siguiente' });
+  let recentFound = false;
+  let oldFound = false;
+  while (true) {
+    const recent = rows.filter({ hasText: 'Ubicación vigente de Luna' });
+    const old = rows.filter({ hasText: 'Ubicación anterior de Luna' });
+    if (await recent.count()) { await expect(recent).toContainText('Reciente'); recentFound = true; }
+    if (await old.count()) { await expect(old).toContainText('Antigua'); oldFound = true; }
+    await expect(rows.getByText('Intermedia', { exact: true })).toHaveCount(0);
+    if (await next.isDisabled()) break;
+    await next.click();
+  }
+  expect(recentFound).toBe(true);
+  expect(oldFound).toBe(true);
 });
 
 test('una ubicación conocida se puede abrir en el mapa desde el historial', async ({ page }) => {
@@ -404,6 +458,8 @@ test('el historial muestra los avistamientos relevantes y la revisión solo ofre
   await createProfile(page);
   await page.goto('/#/alerts/demo-alert-nube');
   const history = page.locator('.case-details .timeline');
+  const map = page.getByRole('img', { name: 'Mapa de pérdida y últimos avistamientos' });
+  await expect(map.locator('.overview-map__marker--sighting')).toHaveCount(3);
   await expect(history).toContainText('Un gato con placa redonda cruzó hacia los jardines.');
   await expect(history).not.toContainText('Vista cerca del parque');
 
@@ -418,6 +474,8 @@ test('el historial muestra los avistamientos relevantes y la revisión solo ofre
   await report.getByRole('combobox', { name: 'Decisión del avistamiento' }).selectOption('discarded');
   await report.getByRole('button', { name: 'Actualizar' }).click();
   await expect(history).not.toContainText('Vista cerca del parque');
+  await expect(map.locator('.overview-map__marker--sighting')).toHaveCount(2);
+  await expect(report.getByRole('button', { name: 'Ver en el mapa' })).toHaveCount(0);
 });
 
 test('el propietario descarga una ficha sin divulgar el teléfono hasta elegirlo', async ({ page }) => {

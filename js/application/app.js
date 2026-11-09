@@ -14,6 +14,7 @@ import { createSearchPosterSvg } from './search-poster.js';
 
 const app = document.querySelector('#app');
 const state = { profile: null, pets: [], locations: [], alerts: [], alertEvents: [], sightings: [], notifications: [], settings: [] };
+const listPages = new Map();
 let activeOverviewMap = null;
 let activeDialogMap = null;
 const VIEW_ROLE_KEY = 'petguard_demo_view_role';
@@ -90,6 +91,16 @@ function statusBadge(status) { return `<span class="status status--${escapeHtml(
 function emptyState(title, description, action = '', iconName = 'pets') { return `<div class="empty"><div class="empty__mark">${icon(iconName)}</div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p>${action}</div>`; }
 function navItem(path, text, iconName, current) { const active = current === path; return `<a href="#/${path}" class="nav-item${active ? ' is-active' : ''}" ${active ? 'aria-current="page"' : ''}>${icon(iconName)}<span>${text}</span></a>`; }
 
+function paginate(items, key, label) {
+  const pageCount = Math.max(1, Math.ceil(items.length / 6));
+  const page = Math.min(Math.max(1, listPages.get(key) || 1), pageCount);
+  listPages.set(key, page);
+  return {
+    items: items.slice((page - 1) * 6, page * 6),
+    controls: pageCount > 1 ? `<nav class="pagination" aria-label="Páginas de ${label}" data-pagination-key="${key}"><button class="button button--secondary button--small" type="button" data-action="change-page" data-list="${key}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>Anterior</button><span aria-live="polite">Página ${page} de ${pageCount}</span><button class="button button--secondary button--small" type="button" data-action="change-page" data-list="${key}" data-page="${page + 1}" ${page === pageCount ? 'disabled' : ''}>Siguiente</button></nav>` : ''
+  };
+}
+
 function shell(content, title, current = route().page) {
   activeOverviewMap?.remove();
   activeOverviewMap = null;
@@ -137,24 +148,27 @@ function renderHome() {
 }
 
 function renderPets() {
-  shell(`<div class="page-head"><div><p class="eyebrow">Identificación y cuidados</p><h2>Fichas de mascotas</h2><p>Consulta sus datos, fotografías y ubicaciones conocidas.</p></div>${isOwnerView() ? `<button class="button button--primary" data-action="new-pet">${icon('plus')} Nueva mascota</button>` : ''}</div><div class="pet-grid pet-grid--wide">${state.pets.map(petCard).join('') || emptyState('Aún no hay mascotas', 'Todavía no hay fichas compartidas.')}</div>`, 'Mascotas', 'pets');
+  const pets = paginate(state.pets, 'pets', 'mascotas');
+  shell(`<div class="page-head"><div><p class="eyebrow">Identificación y cuidados</p><h2>Fichas de mascotas</h2><p>Consulta sus datos, fotografías y ubicaciones conocidas.</p></div>${isOwnerView() ? `<button class="button button--primary" data-action="new-pet">${icon('plus')} Nueva mascota</button>` : ''}</div><div class="pet-grid pet-grid--wide" data-list-start="pets" tabindex="-1">${pets.items.map(petCard).join('') || emptyState('Aún no hay mascotas', 'Todavía no hay fichas compartidas.')}</div>${pets.controls}`, 'Mascotas', 'pets');
 }
 
 function renderPetDetail(id) {
   const pet = state.pets.find((item) => item.id === id);
   if (!pet) return renderNotFound();
   const locations = state.locations.filter((item) => item.petId === id).sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt));
+  const petLocations = paginate(locations, 'pet-locations', 'ubicaciones de la mascota');
   const alerts = state.alerts.filter((item) => item.petId === id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const active = alerts.find((item) => item.status === 'active');
   const optionalDetails = [['Raza', pet.breed], ['Sexo', pet.sex ? label(pet.sex) : ''], ['Condición', pet.condition || pet.medicalNotes], ['Información relevante', petRelevantInformation(pet)]].filter(([, value]) => value);
   shell(`<a class="back-link" href="#/pets">${icon('back')} Volver a mascotas</a><section class="profile-hero">${petPortrait(pet, 'large', true)}<div><div class="profile-hero__title"><h2>${escapeHtml(pet.name)}</h2>${statusBadge(pet.status)}</div><p>${escapeHtml(label(pet.species))} · ${escapeHtml(label(pet.size))} · ${escapeHtml(pet.color)}</p></div><div class="profile-hero__actions">${isOwnerView() ? `<button class="button button--secondary" data-action="edit-pet" data-id="${escapeHtml(pet.id)}">Editar ficha</button>` : ''}${active ? `<a class="button button--danger" href="#/alerts/${encodeURIComponent(active.id)}">Ver alerta</a>` : isOwnerView() ? `<button class="button button--danger" data-action="new-alert" data-pet-id="${escapeHtml(pet.id)}">Reportar extravío</button>` : ''}</div></section>
-    <div class="detail-grid"><section class="panel"><div class="section-head"><h3>Información de la mascota</h3></div>${optionalDetails.length ? `<dl class="data-list">${optionalDetails.map(([term, value]) => `<div><dt>${term}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>` : '<p class="panel-note">Esta ficha todavía no tiene información complementaria.</p>'}</section><section class="panel"><div class="section-head"><div><h3>Ubicaciones conocidas</h3><p>Son referencias conocidas. No muestran una posición en tiempo real.</p></div>${isOwnerView() ? `<button class="text-button" data-action="new-location" data-pet-id="${escapeHtml(pet.id)}">Añadir ${icon('plus')}</button>` : ''}</div><div class="timeline">${locations.slice(0, 6).map(locationRow).join('') || emptyState('Sin ubicaciones', 'Aún no existen ubicaciones compartidas.', '', 'pin')}</div></section></div>
+    <div class="detail-grid"><section class="panel"><div class="section-head"><h3>Información de la mascota</h3></div>${optionalDetails.length ? `<dl class="data-list">${optionalDetails.map(([term, value]) => `<div><dt>${term}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>` : '<p class="panel-note">Esta ficha todavía no tiene información complementaria.</p>'}</section><section class="panel"><div class="section-head"><div><h3>Ubicaciones conocidas</h3><p>Son referencias conocidas. No muestran una posición en tiempo real.</p></div>${isOwnerView() ? `<button class="text-button" data-action="new-location" data-pet-id="${escapeHtml(pet.id)}">Añadir ${icon('plus')}</button>` : ''}</div><div class="timeline" data-list-start="pet-locations" tabindex="-1">${petLocations.items.map(locationRow).join('') || emptyState('Sin ubicaciones', 'Aún no existen ubicaciones compartidas.', '', 'pin')}</div>${petLocations.controls}</section></div>
     ${isOwnerView() ? `<section class="danger-zone"><div><h3>Eliminar ficha</h3><p>También se eliminarán sus ubicaciones, alertas y avistamientos.</p></div><button class="button button--danger-outline" data-action="delete-pet" data-id="${escapeHtml(pet.id)}">Eliminar mascota</button></section>` : ''}`, pet.name, 'pets');
 }
 
 function renderLocations() {
   const locations = [...state.locations].sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt));
-  shell(`<div class="page-head"><div><p class="eyebrow">Referencias para la búsqueda</p><h2>Ubicaciones conocidas</h2><p>Son ubicaciones conocidas. No muestran una posición en tiempo real.</p></div>${isOwnerView() ? `<button class="button button--primary" data-action="new-location">${icon('plus')} Añadir ubicación</button>` : ''}</div><section class="panel"><div class="timeline timeline--roomy">${locations.map(locationRow).join('') || emptyState('Sin ubicaciones conocidas', 'Aún no existen ubicaciones compartidas.', '', 'pin')}</div></section>`, 'Ubicaciones', 'locations');
+  const visible = paginate(locations, 'locations', 'ubicaciones');
+  shell(`<div class="page-head"><div><p class="eyebrow">Referencias para la búsqueda</p><h2>Ubicaciones conocidas</h2><p>Son ubicaciones conocidas. No muestran una posición en tiempo real.</p></div>${isOwnerView() ? `<button class="button button--primary" data-action="new-location">${icon('plus')} Añadir ubicación</button>` : ''}</div><section class="panel"><div class="timeline timeline--roomy" data-list-start="locations" tabindex="-1">${visible.items.map(locationRow).join('') || emptyState('Sin ubicaciones conocidas', 'Aún no existen ubicaciones compartidas.', '', 'pin')}</div>${visible.controls}</section>`, 'Ubicaciones', 'locations');
 }
 
 function alertCard(alert) {
@@ -166,12 +180,13 @@ function alertCard(alert) {
 
 function renderAlerts() {
   const alerts = [...state.alerts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  shell(`<div class="page-head"><div><p class="eyebrow">Casos de búsqueda</p><h2>Alertas de extravío</h2><p>Consulta cada caso y revisa sus avistamientos.</p></div>${isOwnerView() ? `<button class="button button--danger" data-action="new-alert">${icon('alert')} Activar alerta</button>` : ''}</div><div class="alert-grid">${alerts.map(alertCard).join('') || emptyState('No hay alertas', 'No existen casos compartidos.', '', 'alert')}</div>`, 'Alertas', 'alerts');
+  const visible = paginate(alerts, 'alerts', 'alertas');
+  shell(`<div class="page-head"><div><p class="eyebrow">Casos de búsqueda</p><h2>Alertas de extravío</h2><p>Consulta cada caso y revisa sus avistamientos.</p></div>${isOwnerView() ? `<button class="button button--danger" data-action="new-alert">${icon('alert')} Activar alerta</button>` : ''}</div><div class="alert-grid" data-list-start="alerts" tabindex="-1">${visible.items.map(alertCard).join('') || emptyState('No hay alertas', 'No existen casos compartidos.', '', 'alert')}</div>${visible.controls}`, 'Alertas', 'alerts');
 }
 
 function sightingCard(item, last, open) {
   const distance = last ? haversineDistanceKm(last.lat, last.lng, item.lat, item.lng) : null;
-  return `<article class="sighting"><div class="sighting__top"><div><strong>${escapeHtml(item.placeReference || 'Ubicación indicada')}</strong><p>${formatDate(item.seenAt)}</p></div>${statusBadge(item.reviewStatus === 'new' ? 'in_review' : item.reviewStatus)}</div><p>${escapeHtml(item.description)}</p>${distance != null ? `<div class="sighting__facts"><span>Distancia de referencia: ${distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`}</span></div>` : ''}<button class="text-button" type="button" data-action="view-sighting-map" data-id="${escapeHtml(item.id)}">Ver en el mapa</button>${open ? `<form class="review-form" data-form="review-sighting" data-id="${escapeHtml(item.id)}"><label><span class="sr-only">Decisión del avistamiento</span><select name="reviewStatus" required><option value="" ${['new', 'in_review'].includes(item.reviewStatus) ? 'selected' : ''} disabled>Elegir resultado</option><option value="relevant" ${item.reviewStatus === 'relevant' ? 'selected' : ''}>Relevante</option><option value="discarded" ${item.reviewStatus === 'discarded' ? 'selected' : ''}>Descartado</option></select></label><button class="button button--secondary button--small" type="submit">Actualizar</button></form>` : ''}</article>`;
+  return `<article class="sighting"><div class="sighting__top"><div><strong>${escapeHtml(item.placeReference || 'Ubicación indicada')}</strong><p>${formatDate(item.seenAt)}</p></div>${statusBadge(item.reviewStatus === 'new' ? 'in_review' : item.reviewStatus)}</div><p>${escapeHtml(item.description)}</p>${distance != null ? `<div class="sighting__facts"><span>Distancia de referencia: ${distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`}</span></div>` : ''}${item.reviewStatus !== 'discarded' ? `<button class="text-button" type="button" data-action="view-sighting-map" data-id="${escapeHtml(item.id)}">Ver en el mapa</button>` : ''}${open ? `<form class="review-form" data-form="review-sighting" data-id="${escapeHtml(item.id)}"><label><span class="sr-only">Decisión del avistamiento</span><select name="reviewStatus" required><option value="" ${['new', 'in_review'].includes(item.reviewStatus) ? 'selected' : ''} disabled>Elegir resultado</option><option value="relevant" ${item.reviewStatus === 'relevant' ? 'selected' : ''}>Relevante</option><option value="discarded" ${item.reviewStatus === 'discarded' ? 'selected' : ''}>Descartado</option></select></label><button class="button button--secondary button--small" type="submit">Actualizar</button></form>` : ''}</article>`;
 }
 
 function searchGuide(pet, sightings) {
@@ -185,12 +200,14 @@ function renderAlertDetail(id) {
   if (!alert) return renderNotFound();
   const pet = state.pets.find((item) => item.id === alert.petId);
   const sightings = state.sightings.filter((item) => item.alertId === id).sort((a, b) => new Date(b.seenAt) - new Date(a.seenAt));
+  const visibleSightings = paginate(sightings, 'sightings', 'avistamientos');
   const events = state.alertEvents.filter((item) => item.alertId === id).sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt));
   const history = [...events, ...sightings.filter((item) => item.reviewStatus === 'relevant').map((item) => ({
     note: `Avistamiento relevante: ${item.description}`, occurredAt: item.updatedAt || item.seenAt
   }))].sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt));
+  const visibleHistory = paginate(history, 'case-history', 'historial del caso');
   const last = latestLocation(alert.petId); const open = ['active', 'paused'].includes(alert.status);
-  const latestSightings = sightings.slice(0, 5);
+  const latestSightings = sightings.filter((item) => item.reviewStatus !== 'discarded').slice(0, 5);
   const lossReference = state.locations.find((item) => item.id === alert.lastKnownLocationId) || last;
   const lossPoint = Number.isFinite(Number(alert.lat)) && Number.isFinite(Number(alert.lng))
     ? { lat: Number(alert.lat), lng: Number(alert.lng), type: 'loss' }
@@ -200,15 +217,16 @@ function renderAlertDetail(id) {
   const mapPoints = [lossPoint, ...latestSightings.map((item) => ({ lat: Number(item.lat), lng: Number(item.lng), type: 'sighting' })), nearbyViewerLocation].filter((point) => point && Number.isFinite(point.lat) && Number.isFinite(point.lng));
   shell(`<a class="back-link" href="#/alerts">${icon('back')} Volver a alertas</a><section class="case-hero"><div><p class="eyebrow">Caso de búsqueda</p><div class="profile-hero__title"><h2>${escapeHtml(pet?.name || 'Mascota')}</h2>${statusBadge(alert.status)}</div><p>${escapeHtml(alert.searchMessage || 'Sin mensaje de búsqueda')}</p></div>${open ? `<div class="profile-hero__actions"><button class="button button--secondary" data-action="new-sighting" data-alert-id="${escapeHtml(alert.id)}">Registrar avistamiento</button>${isOwnerView() ? `<button class="button button--secondary" data-action="prepare-poster" data-alert-id="${escapeHtml(alert.id)}">Preparar ficha</button><button class="button button--primary" data-action="resolve-alert" data-alert-id="${escapeHtml(alert.id)}">Mascota encontrada</button>` : ''}</div>` : ''}</section>
     ${open && isOwnerView() ? searchGuide(pet, sightings) : ''}<section class="panel overview-map section-block"><div class="section-head"><div><h3>Últimos avistamientos</h3><p>${latestSightings.length} avistamiento${latestSightings.length === 1 ? '' : 's'} en el mapa</p></div><div class="overview-map__legend"><span><i class="overview-map__dot overview-map__dot--loss"></i>Pérdida</span><span><i class="overview-map__dot overview-map__dot--sighting"></i>Avistamiento</span>${nearbyViewerLocation ? '<span><i class="overview-map__dot overview-map__dot--current"></i>Tu ubicación</span>' : ''}</div></div>${mapPoints.length ? '<div class="overview-map__canvas" data-overview-map role="img" aria-label="Mapa de pérdida y últimos avistamientos"></div>' : emptyState('Sin puntos para mostrar', 'Registra una ubicación para verla en el mapa.', '', 'pin')}</section>
-    <div class="detail-grid case-details"><section class="panel"><div class="section-head"><h3>Información del caso</h3></div><dl class="data-list"><div><dt>Reportada</dt><dd>${formatDate(alert.lostAt)}</dd></div>${alert.placeReference ? `<div><dt>Lugar de referencia</dt><dd>${escapeHtml(alert.placeReference)}</dd></div>` : ''}${alert.circumstances ? `<div><dt>Circunstancias</dt><dd>${escapeHtml(alert.circumstances)}</dd></div>` : ''}<div><dt>Última ubicación conocida</dt><dd>${last ? `${escapeHtml(last.placeReference || `${last.lat}, ${last.lng}`)} · ${formatRelativeTime(last.recordedAt)}` : 'Sin ubicación previa'}</dd></div></dl></section><section class="panel"><div class="section-head"><div><h3>Historial</h3><p>Cambios importantes del caso.</p></div></div><div class="timeline">${history.map((event) => `<article class="timeline-item"><span class="timeline-item__dot"></span><div><strong>${escapeHtml(event.note)}</strong><p>${formatDate(event.occurredAt)}</p></div></article>`).join('') || '<p class="muted">Sin eventos registrados.</p>'}</div></section></div>
-    <section id="case-reports" tabindex="-1" class="panel section-block"><div class="section-head"><div><h3>Reportes recientes</h3><p>Cada reporte debe revisarse. No confirma la identidad de la mascota.</p></div>${open ? `<button class="text-button" data-action="new-sighting" data-alert-id="${escapeHtml(alert.id)}">Añadir ${icon('plus')}</button>` : ''}</div><div class="sighting-list">${sightings.map((item) => sightingCard(item, last, open && isOwnerView())).join('') || emptyState('Sin avistamientos', 'Aún no hay reportes asociados.', '', 'pin')}</div></section>`, `Alerta de ${pet?.name || 'mascota'}`, 'alerts');
+    <div class="detail-grid case-details"><section class="panel"><div class="section-head"><h3>Información del caso</h3></div><dl class="data-list"><div><dt>Reportada</dt><dd>${formatDate(alert.lostAt)}</dd></div>${alert.placeReference ? `<div><dt>Lugar de referencia</dt><dd>${escapeHtml(alert.placeReference)}</dd></div>` : ''}${alert.circumstances ? `<div><dt>Circunstancias</dt><dd>${escapeHtml(alert.circumstances)}</dd></div>` : ''}<div><dt>Última ubicación conocida</dt><dd>${last ? `${escapeHtml(last.placeReference || `${last.lat}, ${last.lng}`)} · ${formatRelativeTime(last.recordedAt)}` : 'Sin ubicación previa'}</dd></div></dl></section><section class="panel"><div class="section-head"><div><h3>Historial</h3><p>Cambios importantes del caso.</p></div></div><div class="timeline" data-list-start="case-history" tabindex="-1">${visibleHistory.items.map((event) => `<article class="timeline-item"><span class="timeline-item__dot"></span><div><strong>${escapeHtml(event.note)}</strong><p>${formatDate(event.occurredAt)}</p></div></article>`).join('') || '<p class="muted">Sin eventos registrados.</p>'}</div>${visibleHistory.controls}</section></div>
+    <section id="case-reports" tabindex="-1" class="panel section-block"><div class="section-head"><div><h3>Reportes recientes</h3><p>Cada reporte debe revisarse. No confirma la identidad de la mascota.</p></div>${open ? `<button class="text-button" data-action="new-sighting" data-alert-id="${escapeHtml(alert.id)}">Añadir ${icon('plus')}</button>` : ''}</div><div class="sighting-list" data-list-start="sightings" tabindex="-1">${visibleSightings.items.map((item) => sightingCard(item, last, open && isOwnerView())).join('') || emptyState('Sin avistamientos', 'Aún no hay reportes asociados.', '', 'pin')}</div>${visibleSightings.controls}</section>`, `Alerta de ${pet?.name || 'mascota'}`, 'alerts');
   activeOverviewMap = initializeOverviewMap(document.querySelector('[data-overview-map]'), mapPoints);
 }
 
 function renderNotifications() {
   const items = relevantNotifications().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const unread = items.filter((item) => !item.read).length;
-  shell(`<div class="page-head"><div><p class="eyebrow">Actividad importante</p><h2>Centro de avisos</h2><p>${unread === 0 ? 'No tienes avisos pendientes.' : unread === 1 ? 'Tienes 1 aviso pendiente.' : `Tienes ${unread} avisos pendientes.`}</p></div>${unread ? '<button class="button button--secondary" data-action="mark-all-read">Marcar todos como leídos</button>' : ''}</div><section class="panel notification-list">${items.map((item) => `<article class="notification${item.read ? '' : ' is-unread'}"><span class="notification__icon">${icon(item.priority === 'high' ? 'alert' : 'bell')}</span><div><div class="notification__title"><strong>${escapeHtml(item.title)}</strong><span>${formatRelativeTime(item.createdAt)}</span></div><p>${escapeHtml(item.message)}</p>${state.alerts.some((alert) => alert.id === item.entityId) ? `<a class="text-button" href="#/alerts/${encodeURIComponent(item.entityId)}">Abrir caso</a>` : ''}</div><div class="notification__actions">${!item.read ? `<button class="icon-button" data-action="mark-read" data-id="${escapeHtml(item.id)}" aria-label="Marcar como leído">${icon('check')}</button>` : ''}<button class="icon-button" data-action="delete-notification" data-id="${escapeHtml(item.id)}" aria-label="Eliminar aviso">${icon('close')}</button></div></article>`).join('') || emptyState('No hay avisos', 'Los cambios importantes aparecerán aquí.', '', 'bell')}</section>`, 'Avisos', 'notifications');
+  const visible = paginate(items, 'notifications', 'avisos');
+  shell(`<div class="page-head"><div><p class="eyebrow">Actividad importante</p><h2>Centro de avisos</h2><p>${unread === 0 ? 'No tienes avisos pendientes.' : unread === 1 ? 'Tienes 1 aviso pendiente.' : `Tienes ${unread} avisos pendientes.`}</p></div>${unread ? '<button class="button button--secondary" data-action="mark-all-read">Marcar todos como leídos</button>' : ''}</div><section class="panel notification-list" data-list-start="notifications" tabindex="-1">${visible.items.map((item) => `<article class="notification${item.read ? '' : ' is-unread'}"><span class="notification__icon">${icon(item.priority === 'high' ? 'alert' : 'bell')}</span><div><div class="notification__title"><strong>${escapeHtml(item.title)}</strong><span>${formatRelativeTime(item.createdAt)}</span></div><p>${escapeHtml(item.message)}</p>${state.alerts.some((alert) => alert.id === item.entityId) ? `<a class="text-button" href="#/alerts/${encodeURIComponent(item.entityId)}">Abrir caso</a>` : ''}</div><div class="notification__actions">${!item.read ? `<button class="icon-button" data-action="mark-read" data-id="${escapeHtml(item.id)}" aria-label="Marcar como leído">${icon('check')}</button>` : ''}<button class="icon-button" data-action="delete-notification" data-id="${escapeHtml(item.id)}" aria-label="Eliminar aviso">${icon('close')}</button></div></article>`).join('') || emptyState('No hay avisos', 'Los cambios importantes aparecerán aquí.', '', 'bell')}</section>${visible.controls}`, 'Avisos', 'notifications');
 }
 
 function renderSettings() {
@@ -367,6 +385,16 @@ document.addEventListener('click', async (event) => {
       return;
     }
     if (action === 'close-dialog') return button.closest('dialog')?.close();
+    if (action === 'change-page') {
+      const next = Number(button.dataset.page);
+      if (!Number.isInteger(next)) return;
+      listPages.set(button.dataset.list, next);
+      render();
+      const list = document.querySelector(`[data-list-start="${button.dataset.list}"]`);
+      list?.focus({ preventScroll: true });
+      list?.scrollIntoView({ block: 'start' });
+      return;
+    }
     if (action === 'view-case-reports') { document.querySelector('#case-reports')?.scrollIntoView({ block: 'start' }); document.querySelector('#case-reports')?.focus({ preventScroll: true }); return; }
     if (action === 'remove-pet-photo') {
       const form = button.closest('#pet-form');
