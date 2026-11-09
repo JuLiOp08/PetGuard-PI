@@ -152,6 +152,14 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .search-guide__list a, .search-guide__list button { flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; color: var(--primary); background: transparent; font-weight: 700; }
 @media (max-width: 520px) { .search-guide__list li { align-items: flex-start; flex-direction: column; gap: .25rem; } }
 .timeline { display: grid; }
+.location-groups { display: grid; gap: 1rem; }
+.location-group__head { display: flex; align-items: center; gap: .85rem; padding-bottom: .9rem; border-bottom: 1px solid var(--border); }
+.location-group__head > div { min-width: 0; }
+.location-group__head h3 { margin: 0 0 .15rem; }
+.location-group__head h3, .location-group .timeline-item__head strong { overflow-wrap: anywhere; }
+.location-group__head p { margin: 0; color: var(--muted); font-size: .86rem; }
+.location-group__head a { color: var(--ink); }
+.location-group__head a:hover { color: var(--primary); }
 .timeline-item { position: relative; display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: .8rem; padding: .75rem 0; }
 .timeline-item:not(:last-child)::before { content: ''; position: absolute; left: 6px; top: 26px; bottom: -7px; width: 1px; background: var(--border); }
 .timeline-item__dot { position: relative; z-index: 1; width: 13px; height: 13px; margin-top: .35rem; border: 3px solid white; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 1px var(--primary); }

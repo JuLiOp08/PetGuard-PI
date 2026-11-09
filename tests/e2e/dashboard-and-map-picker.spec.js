@@ -243,7 +243,10 @@ test('los listados extensos se paginan y las tarjetas conservan su ancho', async
     version: 2, exportedAt: timestamp(20),
     profile: { id: 'owner_local', alias: 'Ana Torres', acceptsLocalStorage: true },
     pets: Array.from({ length: 8 }, (_, i) => ({ id: `pet-${i}`, name: `Mascota ${i}`, species: 'dog', color: 'Marrón', size: 'medium', status: 'lost' })),
-    locations: Array.from({ length: 8 }, (_, i) => ({ id: `location-${i}`, petId: 'pet-0', lat: 4.65, lng: -74.08, recordedAt: timestamp(i), placeReference: `Lugar ${i}` })),
+    locations: [
+      ...Array.from({ length: 8 }, (_, i) => ({ id: `location-${i}`, petId: 'pet-0', lat: 4.65, lng: -74.08, recordedAt: timestamp(i), placeReference: `Lugar ${i}` })),
+      ...Array.from({ length: 7 }, (_, i) => ({ id: `other-location-${i}`, petId: `pet-${i + 1}`, lat: 4.65, lng: -74.08, recordedAt: timestamp(-i - 1), placeReference: `Otro lugar ${i}` }))
+    ],
     alerts: Array.from({ length: 8 }, (_, i) => ({ id: `alert-${i}`, petId: `pet-${i}`, status: 'active', lostAt: timestamp(i), createdAt: timestamp(i), searchMessage: `Búsqueda ${i}`, lat: 4.65, lng: -74.08 })),
     alertEvents: Array.from({ length: 8 }, (_, i) => ({ id: `event-${i}`, alertId: 'alert-0', note: `Cambio ${i}`, occurredAt: timestamp(i) })),
     sightings: Array.from({ length: 8 }, (_, i) => ({ id: `sighting-${i}`, alertId: 'alert-0', lat: 4.65, lng: -74.08, seenAt: timestamp(i), description: `Reporte ${i}`, reviewStatus: 'in_review' })),
@@ -257,7 +260,6 @@ test('los listados extensos se paginan y las tarjetas conservan su ancho', async
   for (const [route, selector, key] of [
     ['pets', '.pet-grid--wide .pet-card', 'pets'],
     ['alerts', '.alert-grid .alert-card', 'alerts'],
-    ['locations', '.timeline--roomy .timeline-item', 'locations'],
     ['notifications', '.notification-list .notification', 'notifications'],
     ['alerts/alert-0', '.sighting-list .sighting', 'sightings'],
     ['alerts/alert-0', '.case-details .timeline .timeline-item', 'case-history'],
@@ -275,6 +277,17 @@ test('los listados extensos se paginan y las tarjetas conservan su ancho', async
     await page.locator(`[data-pagination-key="${key}"]`).getByRole('button', { name: 'Anterior' }).click();
     await expect(cards).toHaveCount(6);
   }
+
+  await page.goto('/#/locations');
+  const groups = page.locator('.location-group');
+  await expect(groups).toHaveCount(6);
+  const firstPet = groups.filter({ has: page.getByRole('heading', { name: 'Mascota 0' }) });
+  await expect(firstPet.locator('.timeline-item')).toHaveCount(6);
+  await firstPet.locator('[data-pagination-key="locations-pet-0"]').getByRole('button', { name: 'Siguiente' }).click();
+  await expect(firstPet.locator('.timeline-item')).toHaveCount(2);
+  await page.locator('[data-pagination-key="location-groups"]').getByRole('button', { name: 'Siguiente' }).click();
+  await expect(groups).toHaveCount(2);
+  await expect(firstPet).toHaveCount(0);
 });
 
 test('los iconos del resumen están centrados dentro de sus cuadrados', async ({ page }) => {
@@ -317,6 +330,21 @@ test('una ubicación conocida se puede seleccionar en el mapa y guardar', async 
   await expect(page.getByText(`${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`)).toBeVisible();
 });
 
+test('cada mascota tiene una línea de ubicaciones independiente', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/locations');
+  const groups = page.locator('.location-group');
+  await expect(groups).toHaveCount(4);
+  for (const group of await groups.all()) {
+    const name = await group.getByRole('heading').innerText();
+    const rows = group.locator('.timeline-item');
+    await expect(rows.first()).toBeVisible();
+    await expect(group.locator('.timeline')).toHaveCount(1);
+    await expect(rows.getByText(name, { exact: true })).toHaveCount(0);
+  }
+  await expectPageToFitViewport(page, 'ubicaciones por mascota');
+});
+
 test('solo la última ubicación de cada mascota se presenta como reciente', async ({ page }) => {
   await createProfile(page);
   await createPet(page);
@@ -335,21 +363,12 @@ test('solo la última ubicación de cada mascota se presenta como reciente', asy
   }
 
   await page.goto('/#/locations');
-  const rows = page.locator('.timeline--roomy .timeline-item');
-  const next = page.locator('[data-pagination-key="locations"]').getByRole('button', { name: 'Siguiente' });
-  let recentFound = false;
-  let oldFound = false;
-  while (true) {
-    const recent = rows.filter({ hasText: 'Ubicación vigente de Luna' });
-    const old = rows.filter({ hasText: 'Ubicación anterior de Luna' });
-    if (await recent.count()) { await expect(recent).toContainText('Reciente'); recentFound = true; }
-    if (await old.count()) { await expect(old).toContainText('Antigua'); oldFound = true; }
-    await expect(rows.getByText('Intermedia', { exact: true })).toHaveCount(0);
-    if (await next.isDisabled()) break;
-    await next.click();
-  }
-  expect(recentFound).toBe(true);
-  expect(oldFound).toBe(true);
+  const luna = page.locator('.location-group').filter({ has: page.getByRole('heading', { name: 'Luna' }) });
+  const next = page.locator('[data-pagination-key="location-groups"]').getByRole('button', { name: 'Siguiente' });
+  while (await luna.count() === 0) { await expect(next).toBeEnabled(); await next.click(); }
+  await expect(luna.locator('.timeline-item').filter({ hasText: 'Ubicación vigente de Luna' })).toContainText('Reciente');
+  await expect(luna.locator('.timeline-item').filter({ hasText: 'Ubicación anterior de Luna' })).toContainText('Antigua');
+  await expect(luna.getByText('Intermedia', { exact: true })).toHaveCount(0);
 });
 
 test('una ubicación conocida se puede abrir en el mapa desde el historial', async ({ page }) => {

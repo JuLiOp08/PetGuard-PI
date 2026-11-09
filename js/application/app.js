@@ -94,10 +94,11 @@ function navItem(path, text, iconName, current) { const active = current === pat
 function paginate(items, key, label) {
   const pageCount = Math.max(1, Math.ceil(items.length / 6));
   const page = Math.min(Math.max(1, listPages.get(key) || 1), pageCount);
+  const safeKey = escapeHtml(key);
   listPages.set(key, page);
   return {
     items: items.slice((page - 1) * 6, page * 6),
-    controls: pageCount > 1 ? `<nav class="pagination" aria-label="Páginas de ${label}" data-pagination-key="${key}"><button class="button button--secondary button--small" type="button" data-action="change-page" data-list="${key}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>Anterior</button><span aria-live="polite">Página ${page} de ${pageCount}</span><button class="button button--secondary button--small" type="button" data-action="change-page" data-list="${key}" data-page="${page + 1}" ${page === pageCount ? 'disabled' : ''}>Siguiente</button></nav>` : ''
+    controls: pageCount > 1 ? `<nav class="pagination" aria-label="Páginas de ${escapeHtml(label)}" data-pagination-key="${safeKey}"><button class="button button--secondary button--small" type="button" data-action="change-page" data-list="${safeKey}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>Anterior</button><span aria-live="polite">Página ${page} de ${pageCount}</span><button class="button button--secondary button--small" type="button" data-action="change-page" data-list="${safeKey}" data-page="${page + 1}" ${page === pageCount ? 'disabled' : ''}>Siguiente</button></nav>` : ''
   };
 }
 
@@ -132,9 +133,10 @@ function petCard(pet) {
   return `<article class="pet-card"><a class="pet-card__main" href="#/pets/${encodeURIComponent(pet.id)}">${petPortrait(pet)}<div><div class="pet-card__title"><h3>${escapeHtml(pet.name)}</h3>${statusBadge(pet.status)}</div><p>${escapeHtml(label(pet.species))} · ${escapeHtml(pet.color)}</p><small>${location ? `${icon('pin')} ${formatRelativeTime(location.recordedAt)}` : 'Sin ubicación registrada'}</small></div></a><a class="card-arrow" href="#/pets/${encodeURIComponent(pet.id)}" aria-label="Ver ficha de ${escapeHtml(pet.name)}">${icon('arrow')}</a></article>`;
 }
 
-function locationRow(location) {
+function locationRow(location, grouped = false) {
   const status = latestLocation(location.petId)?.id === location.id ? 'recent' : 'old';
-  return `<article class="timeline-item"><span class="timeline-item__dot status-dot--${status}"></span><div><div class="timeline-item__head"><strong>${escapeHtml(petName(location.petId))}</strong><span>${locationStatusLabel(status)}</span></div><p>${escapeHtml(location.placeReference || `${Number(location.lat).toFixed(5)}, ${Number(location.lng).toFixed(5)}`)}</p><small>${formatDate(location.recordedAt)} · Registro manual</small><small class="coordinates">${Number(location.lat).toFixed(6)}, ${Number(location.lng).toFixed(6)}</small><button class="text-button" type="button" data-action="view-location-map" data-id="${escapeHtml(location.id)}">Ver en el mapa</button></div></article>`;
+  const place = escapeHtml(location.placeReference || `${Number(location.lat).toFixed(5)}, ${Number(location.lng).toFixed(5)}`);
+  return `<article class="timeline-item"><span class="timeline-item__dot status-dot--${status}"></span><div><div class="timeline-item__head"><strong>${grouped ? place : escapeHtml(petName(location.petId))}</strong><span>${locationStatusLabel(status)}</span></div>${grouped ? '' : `<p>${place}</p>`}<small>${formatDate(location.recordedAt)} · Registro manual</small><small class="coordinates">${Number(location.lat).toFixed(6)}, ${Number(location.lng).toFixed(6)}</small><button class="text-button" type="button" data-action="view-location-map" data-id="${escapeHtml(location.id)}">Ver en el mapa</button></div></article>`;
 }
 
 function renderHome() {
@@ -166,9 +168,15 @@ function renderPetDetail(id) {
 }
 
 function renderLocations() {
-  const locations = [...state.locations].sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt));
-  const visible = paginate(locations, 'locations', 'ubicaciones');
-  shell(`<div class="page-head"><div><p class="eyebrow">Referencias para la búsqueda</p><h2>Ubicaciones conocidas</h2><p>Son ubicaciones conocidas. No muestran una posición en tiempo real.</p></div>${isOwnerView() ? `<button class="button button--primary" data-action="new-location">${icon('plus')} Añadir ubicación</button>` : ''}</div><section class="panel"><div class="timeline timeline--roomy" data-list-start="locations" tabindex="-1">${visible.items.map(locationRow).join('') || emptyState('Sin ubicaciones conocidas', 'Aún no existen ubicaciones compartidas.', '', 'pin')}</div>${visible.controls}</section>`, 'Ubicaciones', 'locations');
+  const groups = state.pets.map((pet) => ({
+    pet, locations: state.locations.filter((item) => item.petId === pet.id).sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt))
+  })).filter((group) => group.locations.length).sort((a, b) => new Date(b.locations[0].recordedAt) - new Date(a.locations[0].recordedAt));
+  const visibleGroups = paginate(groups, 'location-groups', 'mascotas con ubicaciones');
+  shell(`<div class="page-head"><div><p class="eyebrow">Referencias para la búsqueda</p><h2>Ubicaciones conocidas</h2><p>Consulta el historial de cada mascota por separado. Son referencias conocidas, no posiciones en tiempo real.</p></div>${isOwnerView() ? `<button class="button button--primary" data-action="new-location">${icon('plus')} Añadir ubicación</button>` : ''}</div><div class="location-groups" data-list-start="location-groups" tabindex="-1">${visibleGroups.items.map(({ pet, locations }) => {
+    const key = `locations-${pet.id}`;
+    const visible = paginate(locations, key, `ubicaciones de ${pet.name}`);
+    return `<section class="panel location-group" aria-label="Ubicaciones de ${escapeHtml(pet.name)}"><div class="location-group__head">${petPortrait(pet)}<div><h3><a href="#/pets/${encodeURIComponent(pet.id)}">${escapeHtml(pet.name)}</a></h3><p>${locations.length} ubicación${locations.length === 1 ? '' : 'es'} registrada${locations.length === 1 ? '' : 's'}</p></div></div><div class="timeline timeline--roomy" data-list-start="${escapeHtml(key)}" tabindex="-1">${visible.items.map((item) => locationRow(item, true)).join('')}</div>${visible.controls}</section>`;
+  }).join('') || `<section class="panel">${emptyState('Sin ubicaciones conocidas', 'Aún no existen ubicaciones compartidas.', '', 'pin')}</section>`}</div>${visibleGroups.controls}`, 'Ubicaciones', 'locations');
 }
 
 function alertCard(alert) {
@@ -390,7 +398,7 @@ document.addEventListener('click', async (event) => {
       if (!Number.isInteger(next)) return;
       listPages.set(button.dataset.list, next);
       render();
-      const list = document.querySelector(`[data-list-start="${button.dataset.list}"]`);
+      const list = [...document.querySelectorAll('[data-list-start]')].find((item) => item.dataset.listStart === button.dataset.list);
       list?.focus({ preventScroll: true });
       list?.scrollIntoView({ block: 'start' });
       return;
