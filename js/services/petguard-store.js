@@ -42,7 +42,7 @@ export function saveProfile(profile) {
 }
 
 export function savePet(pet) {
-  return withTransaction(['pets', 'notifications'], 'readwrite', async (tx) => {
+  return withTransaction(['pets'], 'readwrite', async (tx) => {
     const previous = pet.id ? await get(tx, 'pets', pet.id) : null;
     const record = {
       ...previous,
@@ -59,11 +59,6 @@ export function savePet(pet) {
     delete record.approachInstructions;
     delete record.medicalNotes;
     await put(tx, 'pets', record);
-    if (!previous) {
-      await put(tx, 'notifications', notification({
-        title: 'Mascota registrada', message: `${record.name} fue añadida a PetGuard.`, entityType: 'pet', entityId: record.id
-      }));
-    }
     return record;
   });
 }
@@ -91,14 +86,11 @@ export function deletePet(petId) {
 }
 
 export function saveLocation(location) {
-  return withTransaction(['pets', 'locations', 'notifications'], 'readwrite', async (tx) => {
+  return withTransaction(['pets', 'locations'], 'readwrite', async (tx) => {
     const pet = await get(tx, 'pets', location.petId);
     if (!pet) throw new ConflictError('La mascota seleccionada ya no existe.');
     const record = { ...location, id: location.id || id(), createdAt: location.createdAt || now(), updatedAt: now() };
     await put(tx, 'locations', record);
-    await put(tx, 'notifications', notification({
-      title: 'Ubicación registrada', message: `Se añadió una ubicación conocida para ${pet.name}.`, entityType: 'pet', entityId: pet.id
-    }));
     return record;
   });
 }
@@ -166,7 +158,7 @@ export function reviewSighting(sightingId, reviewStatus, reviewNote = '') {
     validateSightingReviewStatus(reviewStatus);
     const record = { ...sighting, reviewStatus, reviewNote: reviewNote.trim(), updatedAt: now() };
     await put(tx, 'sightings', record);
-    if (reviewStatus === 'relevant') {
+    if (reviewStatus === 'relevant' && sighting.reviewStatus !== 'relevant') {
       await put(tx, 'notifications', notification({
         title: 'Avistamiento relevante', message: 'Un avistamiento fue marcado como relevante.', priority: 'high', entityType: 'alert', entityId: sighting.alertId
       }));

@@ -170,6 +170,49 @@ test('la vista de propietario recibe varios casos de demostración persistentes'
   await expect(page.getByText('Vista cerca del parque')).toBeVisible();
 });
 
+test('registrar una mascota no llena el centro de avisos y sus avisos se pueden gestionar', async ({ page }) => {
+  await createProfile(page);
+  const initialUnread = await page.locator('.metric').filter({ hasText: 'Avisos nuevos' }).locator('strong').innerText();
+  await createPet(page);
+  await expect(page.locator('.metric').filter({ hasText: 'Avisos nuevos' }).locator('strong')).toHaveText(initialUnread);
+
+  await page.goto('/#/notifications');
+  const notices = page.locator('.notification');
+  const initialCount = await notices.count();
+  await page.getByRole('button', { name: 'Marcar todos como leídos' }).click();
+  await expect(page.getByText('No tienes avisos pendientes.')).toBeVisible();
+  await notices.first().getByRole('button', { name: 'Eliminar aviso' }).click();
+  await expect(notices).toHaveCount(initialCount - 1);
+});
+
+test('el centro de avisos oculta registros rutinarios anteriores y conserva las alertas', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#/settings');
+  const backup = {
+    version: 2, exportedAt: '2026-10-23T12:00:00.000Z',
+    profile: { id: 'owner_local', alias: 'Ana Torres', acceptsLocalStorage: true },
+    pets: [{ id: 'pet-1', ownerId: 'owner_local', name: 'Luna', species: 'dog', color: 'Marrón', size: 'medium', status: 'lost' }],
+    locations: [],
+    alerts: [{ id: 'alert-1', petId: 'pet-1', status: 'active', lostAt: '2026-10-23T12:00:00.000Z' }],
+    alertEvents: [], sightings: [],
+    notifications: [
+      { id: 'notice-pet', title: 'Mascota registrada', entityType: 'pet', entityId: 'pet-1', read: false, createdAt: '2026-10-23T12:00:00.000Z' },
+      { id: 'notice-location', title: 'Ubicación registrada', entityType: 'pet', entityId: 'pet-1', read: false, createdAt: '2026-10-23T12:01:00.000Z' },
+      { id: 'notice-alert', title: 'Alerta activada', entityType: 'alert', entityId: 'alert-1', read: false, createdAt: '2026-10-23T12:02:00.000Z' }
+    ],
+    settings: []
+  };
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.locator('#import-file').setInputFiles({
+    name: 'respaldo.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup))
+  });
+  await expect(page.getByRole('heading', { name: 'Todo lo importante, a mano.' })).toBeVisible();
+  await expect(page.locator('.metric').filter({ hasText: 'Avisos nuevos' }).locator('strong')).toHaveText('1');
+  await page.goto('/#/notifications');
+  await expect(page.locator('.notification')).toHaveCount(1);
+  await expect(page.getByText('Alerta activada')).toBeVisible();
+});
+
 test('los iconos del resumen están centrados dentro de sus cuadrados', async ({ page }) => {
   await createProfile(page);
 

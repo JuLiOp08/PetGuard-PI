@@ -83,6 +83,27 @@ test('un avistamiento conserva un estado de revisión válido', async () => {
   assert.equal(current.sightings[0].reviewStatus, 'new');
 });
 
+test('los registros rutinarios no llenan los avisos y un caso conserva los avisos relevantes', async () => {
+  const pet = await savePet({ name: 'Luna', species: 'dog', color: 'Marrón', size: 'medium' });
+  for (const recordedAt of ['2026-10-23T11:00:00.000Z', '2026-10-23T11:30:00.000Z']) {
+    await saveLocation({ petId: pet.id, lat: 4.6533, lng: -74.0836, recordedAt, source: 'manual' });
+  }
+  assert.deepEqual((await loadAppData()).notifications, []);
+
+  const alert = await createAlert({ petId: pet.id, lostAt: '2026-10-23T12:00:00.000Z', searchMessage: 'Buscar a Luna' });
+  const sighting = await saveSighting({
+    alertId: alert.id, lat: 4.654, lng: -74.082, seenAt: '2026-10-23T12:30:00.000Z',
+    confidence: 'high', description: 'Vista cerca del parque'
+  });
+  await reviewSighting(sighting.id, 'relevant');
+  await reviewSighting(sighting.id, 'relevant');
+  await resolveAlert(alert.id, { foundAt: '2026-10-23T13:00:00.000Z', place: 'Parque', note: 'Encontrada' });
+
+  const titles = (await loadAppData()).notifications.map((item) => item.title);
+  assert.deepEqual(titles.sort(), ['Alerta activada', 'Nuevo avistamiento', 'Avistamiento relevante', 'Caso resuelto'].sort());
+  assert.equal((await exportAllData()).notifications.length, 4);
+});
+
 test('un respaldo con identificadores duplicados se rechaza sin perder datos', async () => {
   await saveProfile({ alias: 'Perfil protegido', acceptsLocalStorage: true });
   const duplicatedPet = {
