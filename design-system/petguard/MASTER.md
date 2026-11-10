@@ -20,11 +20,12 @@ Dirección visual para una aplicación de cuidado y búsqueda de mascotas: calma
 - Primario: `#145f52`
 - Primario fuerte: `#0d493e`
 - Peligro: `#b42332`
-- Fondo: `#edf3f0`
+- Fondo: `#fff8ec`
+- Superficie suave: `#faf4e9`
 - Superficie: `#ffffff`
 - Texto: `#14211e`
 - Texto secundario: `#60706b` (contraste AA sobre fondo y superficie)
-- Borde: `#d9e2de`
+- Borde: `#e7ded0`
 
 ## Forma y tipografía
 

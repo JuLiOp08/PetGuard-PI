@@ -117,7 +117,23 @@ function shell(content, title, current = route().page) {
 function renderRoleSelection() {
   activeOverviewMap?.remove();
   activeOverviewMap = null;
-  app.innerHTML = `<main class="role-entry"><section class="role-entry__intro"><a class="brand brand--light" href="#"><span class="brand__mark">P</span><span>PetGuard</span></a><div><p class="eyebrow">Demostración compartida</p><h1>Organiza la búsqueda de tus mascotas</h1><p>Consulta las fichas y los casos de búsqueda desde la vista que te corresponde.</p></div><p class="role-entry__privacy">Tu ubicación se solicitará al elegir una vista y solo se usará como referencia durante esta sesión.</p></section><section class="role-entry__choices" aria-labelledby="role-entry-title"><div><p class="step">Selecciona una vista</p><h2 id="role-entry-title">¿Cómo quieres entrar?</h2><p class="muted">No necesitas una cuenta. Los datos iniciales son de demostración.</p></div><div class="role-grid"><article class="role-card"><span class="role-card__avatar" aria-hidden="true">AT</span><div><p class="eyebrow">Ana Torres</p><h3>Propietario</h3><p>Administra mascotas, ubicaciones y casos de búsqueda.</p></div><button class="button button--primary button--full" type="button" data-action="select-view" data-role="owner">Entrar como propietario</button></article><article class="role-card"><span class="role-card__avatar role-card__avatar--family" aria-hidden="true">CT</span><div><p class="eyebrow">Carlos Torres</p><h3>Familiar</h3><p>Consulta la información compartida y aporta avistamientos.</p></div><button class="button button--secondary button--full" type="button" data-action="select-view" data-role="family">Entrar como familiar</button></article></div></section></main>`;
+  app.innerHTML = `<main class="role-entry">
+    <section class="role-entry__intro">
+      <a class="brand brand--light" href="#" aria-label="PetGuard, inicio"><span class="brand__mark" aria-hidden="true">${icon('pets')}</span><span>PetGuard</span></a>
+      <div class="role-entry__message"><p class="eyebrow">Demostración compartida</p><h1>Organiza la búsqueda de tus mascotas<span aria-hidden="true" class="role-entry__heart">♡</span></h1><p>Consulta las fichas y los casos de búsqueda desde la vista que te corresponde.</p></div>
+      <p class="role-entry__privacy">Tu ubicación se solicitará al elegir una vista y solo se usará como referencia durante esta sesión.</p>
+    </section>
+    <section class="role-entry__choices" aria-labelledby="role-entry-title">
+      <header class="role-entry__top"><span class="role-entry__top-brand">PetGuard</span><span aria-hidden="true">${icon('pets')}</span></header>
+      <div class="role-entry__heading"><p class="eyebrow">¡Bienvenido a PetGuard!</p><h2 id="role-entry-title">¿Cómo quieres entrar?</h2><p>Elige el perfil con el que deseas acceder.</p></div>
+      <div class="role-grid">
+        <article class="role-card"><img class="role-card__photo" src="./assets/entry/owner.png" alt="Persona junto a su perro en un parque"><span class="role-card__avatar" aria-hidden="true">${icon('home')}</span><div class="role-card__body"><h3>Soy propietario</h3><p>Administra las fichas de tus mascotas y sus casos de búsqueda.</p><button class="button button--primary button--full" type="button" data-action="select-view" data-role="owner">Entrar como propietario <span aria-hidden="true">→</span></button></div></article>
+        <article class="role-card"><img class="role-card__photo" src="./assets/entry/family.png" alt="Familia abrazando a su perro"><span class="role-card__avatar role-card__avatar--family" aria-hidden="true">${icon('pets')}</span><div class="role-card__body"><h3>Soy familiar</h3><p>Consulta la información compartida y aporta avistamientos.</p><button class="button button--secondary button--full" type="button" data-action="select-view" data-role="family">Entrar como familiar <span aria-hidden="true">→</span></button></div></article>
+      </div>
+      <p class="role-entry__foot"><span aria-hidden="true">${icon('pets')}</span> Tu comunidad también puede ayudar a protegerlos.</p>
+      <p class="role-entry__demo">No necesitas una cuenta. Los datos iniciales son de demostración.</p>
+    </section>
+  </main>`;
 }
 
 function profileFields(profile = {}) {

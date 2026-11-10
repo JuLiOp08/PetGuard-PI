@@ -11,6 +11,17 @@ async function createProfile(page, role = 'owner') {
   await expect(page.getByRole('heading', { name: role === 'owner' ? 'Tus mascotas y casos de búsqueda' : 'Mascotas y casos compartidos' })).toBeVisible();
 }
 
+test('la entrada pet friendly ofrece ambos perfiles sin desbordar en móvil', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: '¿Cómo quieres entrar?' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Persona junto a su perro en un parque' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Familia abrazando a su perro' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Entrar como propietario/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Entrar como familiar/ })).toBeVisible();
+  await expectPageToFitViewport(page, 'entrada');
+});
+
 async function createPet(page) {
   await page.getByRole('button', { name: /Registrar mascota/ }).click();
   const dialog = page.getByRole('dialog');
@@ -44,7 +55,7 @@ test('el propietario elige familiares y retoma mensajes preparados desde el caso
   await dialog.getByLabel(/Aneliz de la Cruz/).check();
   await dialog.getByRole('button', { name: 'Activar alerta' }).click();
   await expect(page.getByText('Aneliz de la Cruz').last()).toBeVisible();
-  await expect(page.getByText(/922 165667/)).toBeVisible();
+  await expect(page.getByText(/Comprueba que WhatsApp esté abierto con 922 165667/)).toBeVisible();
   await page.reload();
   await expect(page.getByText('Aneliz de la Cruz').last()).toBeVisible();
   const link = page.getByRole('link', { name: /Abrir WhatsApp.*Aneliz/ });

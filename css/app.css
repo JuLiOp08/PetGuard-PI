@@ -3,8 +3,8 @@
   --ink: #14211e;
   --muted: #60706b;
   --surface: #ffffff;
-  --surface-soft: #f4f7f5;
-  --canvas: #edf3f0;
+  --surface-soft: #faf4e9;
+  --canvas: #fff8ec;
   --primary: #145f52;
   --primary-strong: #0d493e;
   --primary-soft: #e1f1eb;
@@ -15,7 +15,7 @@
   --danger-soft: #fbeaec;
   --amber: #8a5b0b;
   --amber-soft: #fff2d6;
-  --border: #d9e2de;
+  --border: #e7ded0;
   --shadow: 0 8px 24px rgba(25, 54, 46, 0.05);
   --radius-lg: 18px;
   --radius-md: 16px;
@@ -247,6 +247,43 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .role-card p { color: var(--muted); }
 .role-card__avatar { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 18px; color: white; background: var(--primary); font-weight: 850; }
 .role-card__avatar--family { color: var(--primary); background: var(--primary-soft); }
+.role-entry { grid-template-columns: minmax(300px, 39%) minmax(0, 61%); background: var(--canvas); }
+.role-entry__intro { position: relative; isolation: isolate; min-height: 100dvh; padding: clamp(1.7rem, 4vw, 3.7rem); overflow: hidden; border-radius: 0 9% 9% 0 / 0 50% 50% 0; background: radial-gradient(circle at 30% 25%, #176451, #0c473d 72%); }
+.role-entry__intro::after { content: ''; position: absolute; z-index: -1; width: 320px; height: 320px; right: -125px; bottom: -155px; border: 2px solid rgba(223, 244, 222, .65); border-radius: 50%; box-shadow: -170px -10px 0 75px rgba(195, 225, 195, .035); }
+.role-entry .brand { align-self: flex-start; font-size: clamp(1.3rem, 2vw, 1.7rem); font-weight: 800; }
+.role-entry .brand__mark { width: 48px; height: 48px; border-radius: 15px; }
+.role-entry .brand__mark .icon { width: 29px; height: 29px; }
+.role-entry__message { margin-block: auto; }
+.role-entry__message .eyebrow { display: flex; align-items: center; gap: .7rem; color: #c6dfd4; }
+.role-entry__message .eyebrow::after { content: ''; width: 58px; height: 1px; background: #a3c8b9; }
+.role-entry__intro h1 { max-width: 10ch; margin: 1rem 0; font-size: clamp(2.5rem, 4.5vw, 4.9rem); line-height: 1.05; letter-spacing: -.045em; }
+.role-entry__intro p:not(.eyebrow) { max-width: 37ch; color: #e3f1e8; }
+.role-entry__heart { margin-left: .1em; color: #ffae82; font-size: .6em; }
+.role-entry__privacy { margin: 0; max-width: 38ch; border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.06); }
+.role-entry__choices { position: relative; width: 100%; max-width: 1100px; margin-inline: auto; gap: 1.6rem; padding: clamp(1.5rem, 4vw, 4rem); }
+.role-entry__top { display: flex; justify-content: flex-end; align-items: center; gap: .75rem; min-height: 34px; color: var(--primary-strong); font-size: .84rem; font-weight: 750; }
+.role-entry__top .icon { width: 24px; height: 24px; }
+.role-entry__top-brand { border-bottom: 2px solid currentColor; }
+.role-entry__heading { text-align: center; }
+.role-entry__heading .eyebrow { margin-bottom: 0; color: var(--primary-strong); font-size: .95rem; font-weight: 800; text-transform: none; }
+.role-entry__heading h2 { margin: 0; color: var(--primary-strong); font-size: clamp(2rem, 3.2vw, 3.25rem); line-height: 1.13; letter-spacing: -.035em; }
+.role-entry__heading p:last-child { margin: .35rem 0 0; color: var(--muted); }
+.role-grid { gap: clamp(.9rem, 1.5vw, 1.5rem); align-items: stretch; }
+.role-card { position: relative; gap: 0; padding: 0; overflow: hidden; border-color: #e8ddce; border-radius: 20px; text-align: center; box-shadow: 0 14px 30px rgba(36, 64, 49, .11); }
+.role-card__photo { display: block; width: 100%; height: clamp(150px, 18vw, 245px); object-fit: cover; object-position: center 45%; }
+.role-card__avatar { position: relative; z-index: 1; width: 56px; height: 56px; margin: -28px auto 0; border: 5px solid white; border-radius: 50%; box-shadow: 0 5px 12px rgba(20, 73, 62, .14); }
+.role-card__avatar .icon { width: 25px; height: 25px; }
+.role-card__avatar--family { background: #d8ebda; }
+.role-card__body { display: flex; flex: 1; flex-direction: column; align-items: stretch; gap: .45rem; padding: .35rem clamp(.8rem, 2vw, 1.6rem) 1.2rem; }
+.role-card__body h3 { margin: 0; color: var(--primary-strong); font-size: 1.35rem; }
+.role-card__body p { flex: 1; margin: 0 0 .4rem; color: #50635d; font-size: .92rem; line-height: 1.35; }
+.role-card__body .button { min-height: 48px; border-radius: 999px; }
+.role-card__body .button--secondary { border: 0; background: #dcebdc; color: var(--primary-strong); }
+.role-card__body .button--secondary:hover { background: #cce3d0; }
+.role-entry__foot { display: flex; align-items: center; justify-content: center; gap: .7rem; margin: 0; color: var(--primary-strong); font-size: .84rem; text-align: center; }
+.role-entry__foot::before, .role-entry__foot::after { content: ''; flex: 1; max-width: 100px; height: 1px; background: #a9c4b5; }
+.role-entry__foot .icon { width: 20px; height: 20px; }
+.role-entry__demo { margin: -.9rem 0 0; color: var(--muted); font-size: .76rem; text-align: center; }
 .trust-circle { margin-bottom: 1rem; }
 .trust-circle__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: .7rem; }
 .trust-person { display: flex; align-items: center; gap: .65rem; padding: .7rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
@@ -374,6 +411,24 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
   .button-row .button { width: 100%; }
   .role-grid { grid-template-columns: 1fr; }
   .section-head { align-items: flex-start; }
+}
+
+@media (max-width: 760px) {
+  body:has(.role-entry) { padding-bottom: 0; }
+  .role-entry { grid-template-columns: 1fr; }
+  .role-entry__intro { min-height: 300px; gap: 1.5rem; padding: 1.5rem; border-radius: 0 0 44px 44px; }
+  .role-entry__intro h1 { max-width: 15ch; margin: .5rem 0; font-size: clamp(2.15rem, 7vw, 3rem); }
+  .role-entry__privacy { font-size: .78rem; }
+  .role-entry__choices { gap: 1.25rem; padding: 1.5rem 1rem 2rem; }
+  .role-entry__top { display: none; }
+  .role-card__photo { height: 190px; }
+}
+
+@media (max-width: 520px) {
+  .role-entry__intro { min-height: 320px; }
+  .role-entry__choices { padding-inline: 1.1rem; }
+  .role-entry__heading h2 { font-size: 2rem; }
+  .role-card__photo { height: 180px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
