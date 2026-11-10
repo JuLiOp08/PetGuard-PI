@@ -64,6 +64,7 @@ npm run lint
 - Historial de ubicaciones por mascota, con la última como reciente y las anteriores como antiguas.
 - Fichas editables con foto, datos principales e información complementaria de mascotas.
 - Casos de búsqueda con alerta, historial y resolución.
+- Mensajes de búsqueda preparados para familiares elegidos, con enlace al mapa y apertura manual de WhatsApp.
 - Avistamientos con revisión, distancia de referencia y consulta individual en mapa.
 - Centro de avisos con lectura y eliminación.
 - Los avisos de búsqueda abren el caso correspondiente.
@@ -75,7 +76,7 @@ npm run lint
 ## Limitaciones reales
 
 - No incluye simulador de collar ni recorridos; ese módulo quedó fuera del alcance actual.
-- No incluye backend, GPS real ni difusión a terceros.
+- No incluye backend, GPS real ni envío automático a terceros. El enlace al caso solo funciona en el navegador que guarda los datos; el mensaje de WhatsApp comparte el resumen y un enlace al mapa.
 - Los mapas usan OpenFreeMap y requieren conexión; permiten desplazamiento y controles de acercamiento y alejamiento.
 - El acceso sin conexión depende de haber abierto la aplicación previamente en ese navegador y de conservar sus datos locales.
 - Las pruebas con usuarios reales quedan pendientes.

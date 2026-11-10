@@ -30,6 +30,28 @@ async function pickMapCenter(dialog) {
   await expect(dialog.locator('[name="lng"]')).not.toHaveValue('');
 }
 
+test('el propietario elige familiares y retoma mensajes preparados desde el caso', async ({ page }) => {
+  await createProfile(page);
+  await createPet(page);
+  await page.goto('/#/pets');
+  await page.getByText('Luna').first().click();
+  await page.getByRole('button', { name: 'Reportar extravío' }).click();
+  const dialog = page.getByRole('dialog');
+  await pickMapCenter(dialog);
+  await dialog.getByLabel('Referencia o detalles para la búsqueda *').fill('Junto al parque');
+  await expect(dialog.getByLabel('No notificar')).toBeChecked();
+  await dialog.getByLabel('Notificar familiares').check();
+  await dialog.getByLabel(/Aneliz de la Cruz/).check();
+  await dialog.getByRole('button', { name: 'Activar alerta' }).click();
+  await expect(page.getByText('Aneliz de la Cruz').last()).toBeVisible();
+  await expect(page.getByText(/922 165667/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('Aneliz de la Cruz').last()).toBeVisible();
+  const link = page.getByRole('link', { name: /Abrir WhatsApp.*Aneliz/ });
+  await expect(link).toHaveAttribute('href', /wa\.me\/51983146185\?text=/);
+  await expect(link).toHaveAttribute('href', /google\.com%2Fmaps%2Fsearch/);
+});
+
 async function expectPageToFitViewport(page, context = 'página actual') {
   const dimensions = await page.evaluate(() => {
     const viewportWidth = globalThis.document.documentElement.clientWidth;

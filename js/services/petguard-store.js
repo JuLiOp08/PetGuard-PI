@@ -117,6 +117,15 @@ export function createAlert(alertInput) {
   });
 }
 
+export function markSearchChatOpened(alertId, phone) {
+  return withTransaction(['alerts'], 'readwrite', async (tx) => {
+    const alert = await get(tx, 'alerts', alertId);
+    if (!alert || !alert.recipients?.includes(phone)) throw new ConflictError('El destinatario no pertenece al caso.');
+    const openedChats = [...new Set([...(alert.openedChats || []), phone])];
+    await put(tx, 'alerts', { ...alert, openedChats, updatedAt: now() });
+  });
+}
+
 export function resolveAlert(alertId, resolution) {
   return withTransaction(['pets', 'alerts', 'alertEvents', 'notifications'], 'readwrite', async (tx) => {
     const alert = await get(tx, 'alerts', alertId);

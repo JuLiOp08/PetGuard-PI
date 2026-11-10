@@ -68,6 +68,10 @@ _Avoid_: Avistamiento
 Mensaje dentro de PetGuard que informa al propietario sobre un evento relevante.
 _Avoid_: Notificación push, alerta de extravío
 
+**Mensaje preparado de búsqueda**:
+Texto de un caso de búsqueda que el propietario puede compartir con un familiar de confianza por un canal externo; abrir una conversación no confirma su envío.
+_Avoid_: Aviso interno, mensaje enviado
+
 **Respaldo**:
 Copia portable de los datos del propietario utilizada para conservarlos o restaurarlos.
 _Avoid_: Sincronización, copia en la nube
