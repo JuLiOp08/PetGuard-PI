@@ -22,6 +22,16 @@ test('la entrada pet friendly ofrece ambos perfiles sin desbordar en móvil', as
   await expectPageToFitViewport(page, 'entrada');
 });
 
+test('la entrada completa cabe sin desplazamiento vertical en pantallas habituales', async ({ page }) => {
+  for (const viewport of [{ width: 1280, height: 720 }, { width: 375, height: 667 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await page.locator('.role-card__photo').evaluateAll((images) => Promise.all(images.map((image) => image.decode())));
+    const height = await page.evaluate(() => ({ content: globalThis.document.documentElement.scrollHeight, viewport: globalThis.document.documentElement.clientHeight }));
+    expect(height.content, `${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(height.viewport);
+  }
+});
+
 async function createPet(page) {
   await page.getByRole('button', { name: /Registrar mascota/ }).click();
   const dialog = page.getByRole('dialog');

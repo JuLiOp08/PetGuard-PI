@@ -431,6 +431,42 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
   .role-card__photo { height: 180px; }
 }
 
+@media (min-width: 761px) and (max-height: 850px) {
+  .role-entry__intro { padding-block: 1.8rem; }
+  .role-entry__intro h1 { max-width: 12ch; font-size: clamp(2.3rem, 3.7vw, 3.6rem); }
+  .role-entry__choices { gap: .8rem; padding-block: 1.1rem; }
+  .role-entry__heading h2 { font-size: clamp(1.9rem, 2.8vw, 2.6rem); }
+  .role-card__photo { height: clamp(130px, 15vw, 190px); }
+  .role-card__body { padding-bottom: .8rem; }
+}
+
+@media (max-width: 760px) and (max-height: 750px) {
+  .role-entry__intro { min-height: 0; gap: .3rem; padding: .8rem 1rem; border-radius: 0 0 28px 28px; }
+  .role-entry .brand { font-size: 1.15rem; }
+  .role-entry .brand__mark { width: 35px; height: 35px; }
+  .role-entry .brand__mark .icon { width: 23px; height: 23px; }
+  .role-entry__message .eyebrow { margin: .15rem 0; font-size: .65rem; }
+  .role-entry__intro h1 { max-width: none; margin: .2rem 0; font-size: clamp(1.55rem, 6vw, 2rem); line-height: 1.05; }
+  .role-entry__intro p:not(.eyebrow) { margin: .2rem 0; font-size: .75rem; line-height: 1.25; }
+  .role-entry__privacy { padding: .35rem .5rem; font-size: .7rem; line-height: 1.2; }
+  .role-entry__choices { gap: .55rem; padding: .6rem .75rem; }
+  .role-entry__heading .eyebrow { font-size: .72rem; }
+  .role-entry__heading h2 { font-size: 1.55rem; }
+  .role-entry__heading p:last-child { margin: 0; font-size: .72rem; }
+  .role-grid { grid-template-columns: 1fr 1fr; gap: .55rem; }
+  .role-card { border-radius: 14px; }
+  .role-card__photo { height: 78px; }
+  .role-card__avatar { width: 36px; height: 36px; margin-top: -18px; border-width: 3px; }
+  .role-card__avatar .icon { width: 19px; height: 19px; }
+  .role-card__body { gap: .15rem; padding: .2rem .35rem .45rem; }
+  .role-card__body h3 { font-size: 1.05rem; }
+  .role-card__body p { margin: 0; font-size: .75rem; line-height: 1.18; }
+  .role-card__body .button { min-height: 44px; padding: .25rem; font-size: .75rem; line-height: 1.1; }
+  .role-entry__foot { gap: .3rem; font-size: .66rem; }
+  .role-entry__foot::before, .role-entry__foot::after { max-width: 22px; }
+  .role-entry__demo { margin: 0; font-size: .62rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
