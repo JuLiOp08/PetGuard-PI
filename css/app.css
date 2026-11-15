@@ -319,6 +319,24 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .alert-card__meta span { display: flex; align-items: center; gap: .4rem; }
 .alert-card__meta .icon { width: 1rem; height: 1rem; }
 .alert-card > .button { margin-top: auto; }
+.alerts-page .directory-hero .button { color: var(--danger-strong); }
+.alerts-page .directory-summary strong { color: var(--danger-strong); }
+.alerts-page .alert-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.alerts-page .alert-card { min-width: 0; padding: 1.2rem; transition: border-color .16s ease, box-shadow .16s ease; }
+.alerts-page .alert-card--active { border-color: #efc4c9; }
+.alerts-page .alert-card:hover, .alerts-page .alert-card:focus-within { box-shadow: var(--shadow); }
+.alert-card__identity { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+.alert-card__identity > div { min-width: 0; }
+.alert-card__identity .pet-avatar { width: 48px; height: 48px; border-radius: 14px; }
+.alert-card__identity h3 { margin: .1rem 0 0; font-size: 1.25rem; overflow-wrap: anywhere; }
+.alert-card__identity .eyebrow { font-size: .68rem; }
+.alerts-page .alert-card__top { align-items: flex-start; flex-wrap: wrap; }
+.alerts-page .alert-card__top .status { margin-left: auto; }
+.alerts-page .alert-card__message { min-height: 0; margin: 1rem 0; color: var(--ink); overflow-wrap: anywhere; }
+.alerts-page .alert-card__meta { gap: .7rem; margin: auto 0 1rem; padding: .8rem; border-radius: var(--radius-sm); background: var(--surface-soft); }
+.alerts-page .alert-card__meta span { min-width: 0; overflow-wrap: anywhere; }
+.alerts-page .alert-card__meta .icon { flex: 0 0 auto; color: var(--primary); }
+.alerts-page .alert-card .button { justify-content: space-between; }
 .sighting-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 1rem; }
 .pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
 .pagination .button { min-height: 44px; }
@@ -350,6 +368,26 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .notification__title span { color: var(--muted); font-size: .78rem; }
 .notification p { margin: .18rem 0 0; color: var(--muted); }
 .notification__actions { display: flex; gap: .4rem; }
+.notifications-page .directory-hero .button { color: var(--primary-strong); }
+.notifications-page .notification { grid-template-columns: 44px minmax(0, 1fr); align-items: start; gap: 1rem; padding: 1.2rem; }
+.notifications-page .notification__body { min-width: 0; }
+.notifications-page .notification__title { justify-content: flex-start; flex-wrap: wrap; gap: .3rem .55rem; }
+.notifications-page .notification__title strong { font-size: 1rem; overflow-wrap: anywhere; }
+.notifications-page .notification__unread { padding: .18rem .5rem; border-radius: 999px; color: var(--primary-strong); background: var(--primary-soft); font-size: .7rem; font-weight: 800; }
+.notifications-page .notification__body > small { display: block; margin-top: .25rem; color: var(--muted); font-size: .78rem; }
+.notifications-page .notification p { margin: .6rem 0 .8rem; overflow-wrap: anywhere; }
+.notifications-page .notification__controls { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; padding-top: .65rem; border-top: 1px solid var(--border); }
+.notifications-page .notification__controls > .text-button { padding-inline: 0; }
+.notifications-page .notification__controls > .text-button .icon { width: .9rem; height: .9rem; }
+.notifications-page .notification__actions { margin-left: auto; flex-wrap: wrap; gap: .5rem; }
+.notifications-page .notification__actions .button { min-height: 44px; }
+.notifications-page .notification__actions .icon { width: 1rem; height: 1rem; }
+@media (max-width: 520px) {
+  .alerts-page .directory-section-head, .notifications-page .directory-section-head { align-items: flex-start; flex-direction: column; gap: .25rem; }
+  .notifications-page .notification { gap: .7rem; padding: 1rem; }
+  .notifications-page .notification__actions { flex-direction: column; align-items: stretch; width: 100%; margin-left: 0; }
+  .notifications-page .notification__actions .button { width: 100%; white-space: nowrap; }
+}
 .settings-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 .settings-row > div { min-width: 0; }
 .settings-row p { overflow-wrap: anywhere; }
