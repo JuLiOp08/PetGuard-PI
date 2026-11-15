@@ -17,15 +17,20 @@ Dirección visual para una aplicación de cuidado y búsqueda de mascotas: calma
 
 ## Tokens principales
 
-- Primario: `#145f52`
-- Primario fuerte: `#0d493e`
+- Verde bosque / primario: `#0F4A3B`
+- Primario fuerte: `#0B3D30`
 - Peligro: `#b42332`
-- Fondo: `#fff8ec`
-- Superficie suave: `#faf4e9`
-- Superficie: `#ffffff`
+- Fondo crema cálido: `#FDF3E6`
+- Superficie: blanco cálido `#FDFBF8`
+- Superficie suave: salvia claro `#E8F0E6`, para recuadros dentro de tarjetas
+- Verde salvia: `#D5E4D3`, para botones secundarios, estados y detalles
+- Salvia de interacción: `#C3D9C1`, para el hover de botones secundarios
+- Durazno: `#F2A66F`, para foco y acentos puntuales
 - Texto: `#14211e`
-- Texto secundario: `#60706b` (contraste AA sobre fondo y superficie)
-- Borde: `#e7ded0`
+- Texto secundario gris verdoso: `#45534F`
+- Borde: `#C8D7C7`
+
+El fondo crema se reserva para el lienzo de página. Las tarjetas usan blanco cálido y los recuadros contenidos en ellas usan salvia claro para mantenerlos distinguibles.
 
 ## Forma y tipografía
 
