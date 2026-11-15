@@ -9,7 +9,13 @@ export const trustedContacts = Object.freeze([
 
 export function preparedSearchMessage(alert) {
   const map = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${alert.lat},${alert.lng}`)}`;
-  return `Se busca a ${alert.petName}. Extravío: ${new Date(alert.lostAt).toLocaleString('es-PE')}. ${alert.searchMessage}. Contacto: ${alert.contactSnapshot?.phone || 'consultar con el propietario'}. Ubicación: ${map}`;
+  return [
+    `Se busca a ${alert.petName}.`,
+    `Extravío: ${new Date(alert.lostAt).toLocaleString('es-PE')}`,
+    String(alert.searchMessage || '').trim(),
+    `Contacto: ${alert.contactSnapshot?.phone || 'consultar con el propietario'}`,
+    `Ubicación: ${map}`
+  ].filter(Boolean).join('\n');
 }
 
 export function whatsappLink(contact, alert) {

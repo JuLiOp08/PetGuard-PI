@@ -51,7 +51,8 @@ async function pickMapCenter(dialog) {
   await expect(dialog.locator('[name="lng"]')).not.toHaveValue('');
 }
 
-test('el propietario elige familiares y retoma mensajes preparados desde el caso', async ({ page }) => {
+test('el propietario puede copiar el mensaje y abrir WhatsApp para un familiar', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await createProfile(page);
   await createPet(page);
   await page.goto('/#/pets');
@@ -65,7 +66,14 @@ test('el propietario elige familiares y retoma mensajes preparados desde el caso
   await dialog.getByLabel(/Aneliz de la Cruz/).check();
   await dialog.getByRole('button', { name: 'Activar alerta' }).click();
   await expect(page.getByText('Aneliz de la Cruz').last()).toBeVisible();
-  await expect(page.getByText(/Comprueba que WhatsApp esté abierto con 922 165667/)).toBeVisible();
+  await page.getByRole('button', { name: 'Copiar mensaje' }).click();
+  await expect(page.getByText('Mensaje copiado.')).toBeVisible();
+  const copied = await page.evaluate(() => globalThis.navigator.clipboard.readText());
+  expect(copied).toContain('Se busca a Luna.');
+  expect(copied).toContain('Junto al parque');
+  expect(copied).toContain('\nContacto:');
+  await expect(page.getByText(/Comprueba que WhatsApp esté abierto/)).toHaveCount(0);
+  await expect(page.getByText(/Chat abierto; confirma el envío/)).toHaveCount(0);
   await page.reload();
   await expect(page.getByText('Aneliz de la Cruz').last()).toBeVisible();
   const link = page.getByRole('link', { name: /Abrir WhatsApp.*Aneliz/ });
