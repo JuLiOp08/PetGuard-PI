@@ -128,6 +128,7 @@ function renderRoleSelection() {
     <section class="role-entry__choices" aria-labelledby="role-entry-title">
       <header class="role-entry__top"><span class="role-entry__top-brand">PetGuard</span><span aria-hidden="true">${icon('pets')}</span></header>
       <div class="role-entry__heading"><p class="eyebrow">¡Bienvenido a PetGuard!</p><h2 id="role-entry-title">¿Cómo quieres entrar?</h2><p>Elige el perfil con el que deseas acceder.</p></div>
+      <p class="role-entry__error" role="alert" hidden></p>
       <div class="role-grid">
         <article class="role-card"><img class="role-card__photo" src="./assets/entry/owner.png" alt="Persona junto a su perro en un parque"><span class="role-card__avatar" aria-hidden="true">${icon('home')}</span><div class="role-card__body"><h3>Soy propietario</h3><p>Administra las fichas de tus mascotas y sus casos de búsqueda.</p><button class="button button--primary button--full" type="button" data-action="select-view" data-role="owner">Entrar como propietario <span aria-hidden="true">→</span></button></div></article>
         <article class="role-card"><img class="role-card__photo" src="./assets/entry/family.png" alt="Familia abrazando a su perro"><span class="role-card__avatar role-card__avatar--family" aria-hidden="true">${icon('pets')}</span><div class="role-card__body"><h3>Soy familiar</h3><p>Consulta la información compartida y aporta avistamientos.</p><button class="button button--secondary button--full" type="button" data-action="select-view" data-role="family">Entrar como familiar <span aria-hidden="true">→</span></button></div></article>
@@ -136,6 +137,27 @@ function renderRoleSelection() {
       <p class="role-entry__demo">No necesitas una cuenta. Los datos iniciales son de demostración.</p>
     </section>
   </main>`;
+}
+
+function showOwnerEntryTransition() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+  const steps = [
+    [17, 81, -22], [30, 70, 18], [39, 54, -20], [53, 62, 16],
+    [62, 43, -19], [75, 49, 20], [82, 29, -16], [93, 20, 17]
+  ];
+  const trail = steps.map(([left, top, rotation], index) =>
+    `<span class="owner-entry__paw" style="--step:${index};left:${left}%;top:${top}%;--rotation:${rotation}deg" aria-hidden="true">${icon('pets')}</span>`
+  ).join('');
+  const transition = document.createElement('div');
+  transition.className = 'owner-entry';
+  transition.setAttribute('role', 'status');
+  transition.setAttribute('aria-live', 'polite');
+  transition.setAttribute('tabindex', '-1');
+  transition.innerHTML = `<div class="owner-entry__content"><span class="owner-entry__brand">${icon('pets')} PetGuard</span><div class="owner-entry__trail" aria-hidden="true">${trail}</div><p class="owner-entry__eyebrow">Tu camino comienza aquí</p><h2>Bienvenido a tu espacio</h2><p>Preparando las fichas y los casos de tus mascotas.</p><span class="owner-entry__progress" aria-hidden="true"></span></div>`;
+  app.querySelector('.role-entry').inert = true;
+  app.append(transition);
+  transition.focus();
+  return new Promise((resolve) => window.setTimeout(resolve, 3000));
 }
 
 function profileFields(profile = {}) {
@@ -318,7 +340,30 @@ function alertForm(selectedPetId = '') {
   const available = state.pets.filter((pet) => !state.alerts.some((alert) => alert.petId === pet.id && alert.status === 'active'));
   const petId = selectedPetId || available[0]?.id || '';
   const initialLocation = latestLocation(petId);
-  return `<form id="alert-form" data-map-lat="${initialLocation ? Number(initialLocation.lat) : ''}" data-map-lng="${initialLocation ? Number(initialLocation.lng) : ''}" novalidate><div class="form-error" role="alert" tabindex="-1" hidden></div><label class="field"><span>Mascota <b>*</b></span><select name="petId" required>${available.map((pet) => `<option value="${escapeHtml(pet.id)}" ${pet.id === petId ? 'selected' : ''}>${escapeHtml(pet.name)}</option>`).join('')}</select></label><label class="field"><span>Fecha y hora del extravío <b>*</b></span><input name="lostAt" type="datetime-local" value="${inputDate()}" required><small class="field-error" data-error-for="lostAt"></small></label>${coordinatePicker()}<label class="field"><span>Referencia o detalles para la búsqueda <b>*</b></span><textarea name="searchMessage" rows="3" required placeholder="Ej. Se perdió junto al parque y lleva collar azul"></textarea><small class="field-error" data-error-for="searchMessage"></small></label><fieldset class="form-section"><legend>Avisar al círculo de confianza</legend><label class="check"><input type="radio" name="notifyFamily" value="no" checked> No notificar</label><label class="check"><input type="radio" name="notifyFamily" value="yes"> Notificar familiares</label><div class="trust-circle__list">${trustedContacts.map((contact) => `<label class="check"><input type="checkbox" name="recipient" value="${contact.phone}" ${contact.real ? "" : "disabled"}> ${escapeHtml(contact.name)} · ${escapeHtml(contact.phone)}${contact.real ? "" : " · número ficticio"}</label>`).join("")}</div></fieldset><p class="form-note">La alerta se guarda antes de preparar mensajes. Comprueba que WhatsApp use tu cuenta 922 165667.</p><div class="dialog-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancelar</button><button class="button button--danger" type="submit">Activar alerta</button></div></form>`;
+  const contacts = trustedContacts.filter((contact) => contact.real);
+  return `<form id="alert-form" data-map-lat="${initialLocation ? Number(initialLocation.lat) : ''}" data-map-lng="${initialLocation ? Number(initialLocation.lng) : ''}" novalidate>
+    <div class="form-error" role="alert" tabindex="-1" hidden></div>
+    <p class="alert-form__intro">Indica cuándo y dónde se perdió para empezar la búsqueda.</p>
+    <section class="alert-form__section" aria-labelledby="alert-pet-heading">
+      <h3 id="alert-pet-heading">Mascota y momento</h3>
+      <div class="field-grid"><label class="field"><span>Mascota <b>*</b></span><select name="petId" required>${available.map((pet) => `<option value="${escapeHtml(pet.id)}" ${pet.id === petId ? 'selected' : ''}>${escapeHtml(pet.name)}</option>`).join('')}</select></label><label class="field"><span>Fecha y hora del extravío <b>*</b></span><input name="lostAt" type="datetime-local" value="${inputDate()}" required><small class="field-error" data-error-for="lostAt"></small></label></div>
+    </section>
+    <section class="alert-form__section" aria-labelledby="alert-place-heading">
+      <h3 id="alert-place-heading">Lugar del extravío <span>*</span></h3>
+      <p>Marca en el mapa el último lugar donde la viste.</p>
+      ${coordinatePicker()}
+    </section>
+    <section class="alert-form__section" aria-labelledby="alert-details-heading">
+      <h3 id="alert-details-heading">Detalles para la búsqueda</h3>
+      <label class="field"><span>Referencia o detalles para la búsqueda <b>*</b></span><textarea name="searchMessage" rows="3" required placeholder="Ej. Se perdió junto al parque y lleva collar azul"></textarea><small class="field-error" data-error-for="searchMessage"></small></label>
+    </section>
+    <fieldset class="alert-form__section alert-form__sharing"><legend>Avisar al círculo de confianza</legend><p>Elige si quieres preparar mensajes para compartir el caso.</p>
+      <div class="alert-form__choices"><label class="alert-form__choice"><input type="radio" name="notifyFamily" value="no" checked><span><strong>No notificar</strong><small>Activar solo la alerta.</small></span></label><label class="alert-form__choice"><input type="radio" name="notifyFamily" value="yes"><span><strong>Notificar familiares</strong><small>Preparar mensajes para WhatsApp.</small></span></label></div>
+      <div class="alert-form__contacts" data-alert-contacts hidden><p>Selecciona a quién quieres escribir después de activar la alerta.</p><div class="alert-form__contact-grid">${contacts.map((contact) => `<label class="alert-form__contact"><input type="checkbox" name="recipient" value="${contact.phone}"><span><strong>${escapeHtml(contact.name)}</strong><small>${escapeHtml(contact.phone)}</small></span></label>`).join('')}</div></div>
+    </fieldset>
+    <p class="alert-form__note">La alerta se activará al guardar. Podrás abrir WhatsApp desde el caso para enviar los mensajes.</p>
+    <div class="dialog-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancelar</button><button class="button button--danger" type="submit">Activar alerta</button></div>
+  </form>`;
 }
 
 function sightingForm(alertId) {
@@ -428,11 +473,13 @@ document.addEventListener('click', async (event) => {
       viewerRole = button.dataset.role;
       window.sessionStorage.setItem(VIEW_ROLE_KEY, viewerRole);
       button.disabled = true;
-      button.textContent = 'Obteniendo ubicación…';
-      await requestReferenceLocation();
+      button.textContent = 'Entrando…';
+      const transition = viewerRole === 'owner' ? showOwnerEntryTransition() : Promise.resolve();
+      const referenceLocation = requestReferenceLocation();
       if (!state.profile && !hasStoredRecords()) {
         await importAllData(createDemoData({ alias: demoViewers.owner.alias, phone: '922 165667', email: 'ana.torres@example.com', district: 'Miraflores', alternateContact: demoViewers.family.alias, acceptsLocalStorage: true }));
       }
+      await Promise.all([transition, referenceLocation]);
       await refresh();
       navigate('home');
       return;
@@ -491,7 +538,18 @@ document.addEventListener('click', async (event) => {
     if (['mark-read', 'mark-all-read', 'delete-notification'].includes(action)) await refresh();
     if (action === 'export') { const payload = await exportAllData(); const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `petguard-respaldo-${new Date().toISOString().slice(0, 10)}.json`; anchor.click(); URL.revokeObjectURL(url); toast('Respaldo exportado correctamente.'); }
     if (action === 'reset' && confirm('¿Borrar definitivamente todos los datos de PetGuard en este navegador? Exporta un respaldo antes si deseas conservarlos.')) { await resetAllData(); await refresh(); navigate('home'); }
-  } catch (error) { toast(error.message || 'No se pudo completar la acción.'); }
+  } catch (error) {
+    if (action === 'select-view') {
+      viewerRole = '';
+      window.sessionStorage.removeItem(VIEW_ROLE_KEY);
+      renderRoleSelection();
+      const message = app.querySelector('.role-entry__error');
+      message.textContent = error.message || 'No pudimos abrir esta vista. Inténtalo de nuevo.';
+      message.hidden = false;
+      return;
+    }
+    toast(error.message || 'No se pudo completar la acción.');
+  }
 });
 
 document.addEventListener('submit', async (event) => {
@@ -533,6 +591,10 @@ document.addEventListener('submit', async (event) => {
 });
 
 document.addEventListener('change', async (event) => {
+  if (event.target.matches('#alert-form [name="notifyFamily"]')) {
+    event.target.closest('#alert-form').querySelector('[data-alert-contacts]').hidden = event.target.value !== 'yes';
+    return;
+  }
   if (event.target.id === 'pet-photo-input') {
     const input = event.target;
     const form = input.closest('#pet-form');

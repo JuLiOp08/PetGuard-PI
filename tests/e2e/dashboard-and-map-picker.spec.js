@@ -477,6 +477,13 @@ test('una pérdida usa un solo detalle y marca la ubicación actual en el mapa',
 
   await expect(dialog.getByRole('application', { name: 'Mapa para seleccionar coordenadas' })).toBeVisible();
   await expect(dialog.getByLabel('Referencia o detalles para la búsqueda *')).toBeVisible();
+  await expect(dialog.getByLabel('No notificar')).toBeChecked();
+  await expect(dialog.getByLabel(/Aneliz de la Cruz/)).toBeHidden();
+  await dialog.getByLabel('Notificar familiares').check();
+  await expect(dialog.getByLabel(/Aneliz de la Cruz/)).toBeVisible();
+  await expect(dialog.getByText('número ficticio')).toHaveCount(0);
+  await dialog.getByLabel('No notificar').check();
+  await expect(dialog.getByLabel(/Aneliz de la Cruz/)).toBeHidden();
   await expect(dialog.getByLabel('Lugar de referencia')).toHaveCount(0);
   await expect(dialog.getByLabel('Circunstancias')).toHaveCount(0);
   await expect(dialog.locator('[name="lat"]')).toHaveValue('-12.046400');
