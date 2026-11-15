@@ -121,6 +121,59 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .page-head p { max-width: 65ch; }
 .content-grid--home { align-items: start; }
 .home-section { min-height: 320px; }
+.home-hero { border-radius: 24px; }
+.home-hero .button { flex: 0 0 auto; background: white; color: var(--primary-strong); }
+.home-hero .button:hover { background: var(--primary-soft); }
+.home-page .metrics { margin: 1.25rem 0 1.5rem; }
+.home-page .metric { min-height: 88px; }
+.home-page .home-attention { align-items: flex-start; margin: 1rem 0 0; padding: 1.1rem 1.25rem; }
+.home-attention__intro { display: flex; align-items: flex-start; gap: .8rem; }
+.home-attention__intro > .icon { flex: 0 0 auto; margin-top: .1rem; }
+.home-attention__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .5rem; }
+.home-attention__actions > a:not(.button) { display: inline-flex; align-items: center; gap: .25rem; min-height: 44px; padding: .5rem .7rem; border: 1px solid #efc4c9; border-radius: 10px; background: white; font-weight: 750; }
+.home-attention__actions > a:hover { border-color: var(--danger); }
+.home-attention__actions .icon { width: .9rem; height: .9rem; }
+.home-page .content-grid--home { align-items: start; gap: 1.25rem; }
+.home-page .home-section { min-width: 0; }
+.home-page .home-section .section-head { align-items: flex-start; }
+.home-page .home-section .section-head p { font-size: .85rem; }
+.home-page .home-section .section-head a { flex: 0 0 auto; }
+.home-page .home-pet-card { padding: 0; transition: border-color .16s ease, box-shadow .16s ease; }
+.home-pet-card:hover, .home-pet-card:focus-within { border-color: #9abbb0; box-shadow: var(--shadow); }
+.home-pet-card > a { display: flex; align-items: center; gap: .85rem; width: 100%; min-height: 94px; padding: .9rem; }
+.home-pet-card__details { flex: 1; min-width: 0; }
+.home-pet-card .pet-card__title { gap: .4rem; }
+.home-pet-card .pet-card__title h3 { margin: 0; overflow-wrap: anywhere; }
+.home-pet-card p { margin: .12rem 0; font-size: .84rem; }
+.home-pet-card small { display: flex; align-items: center; gap: .25rem; color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; }
+.home-pet-card small .icon { flex: 0 0 auto; color: var(--primary); }
+.home-pet-card > a > .icon { width: 1rem; height: 1rem; color: var(--primary); }
+.home-location-list { display: grid; }
+.home-location { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: .7rem; padding: .8rem 0; border-bottom: 1px solid var(--border); }
+.home-location__icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: var(--primary); background: var(--primary-soft); }
+.home-location__icon .icon { width: 1rem; height: 1rem; }
+.home-location > div { min-width: 0; }
+.home-location strong { overflow-wrap: anywhere; }
+.home-location p { margin: .08rem 0; color: var(--muted); font-size: .84rem; overflow-wrap: anywhere; }
+.home-location small { color: var(--muted); font-size: .76rem; }
+.home-location .coordinates { display: block; font-size: .72rem; overflow-wrap: anywhere; }
+.home-location .text-button { white-space: nowrap; font-size: .78rem; }
+.home-location .text-button .icon { width: .85rem; height: .85rem; }
+.home-section__footer { display: inline-flex; align-items: center; gap: .25rem; min-height: 44px; margin-top: .7rem; color: var(--primary); font-size: .88rem; font-weight: 750; }
+.home-section__footer .icon { width: 1rem; height: 1rem; }
+.home-page .trust-circle { margin: 1.5rem 0 0; }
+.home-page .trust-circle__list { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+@media (max-width: 760px) {
+  .home-hero .button { width: 100%; }
+  .home-attention__actions { justify-content: flex-start; }
+}
+@media (max-width: 520px) {
+  .home-attention__actions { width: 100%; }
+  .home-attention__actions > a { flex: 1; justify-content: center; }
+  .home-attention__actions > a:last-child { flex-basis: 100%; }
+  .home-location { grid-template-columns: 36px minmax(0, 1fr); }
+  .home-location .text-button { grid-column: 2; justify-self: start; }
+}
 
 .pet-grid, .alert-grid { display: grid; gap: 1rem; }
 .pet-grid--wide, .alert-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
