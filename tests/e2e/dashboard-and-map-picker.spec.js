@@ -8,13 +8,13 @@ test.afterEach(async ({ page }) => {
 async function createProfile(page, role = 'owner') {
   await page.goto('/');
   await page.getByRole('button', { name: role === 'owner' ? /Entrar como propietario/ : /Entrar como familiar/ }).click();
-  await expect(page.getByRole('heading', { name: role === 'owner' ? 'Tus mascotas y casos de búsqueda' : 'Mascotas y casos compartidos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: role === 'owner' ? 'Tus mascotas y casos de búsqueda' : 'Mascotas y casos compartidos' })).toBeVisible({ timeout: 10000 });
 }
 
 test('la entrada pet friendly ofrece ambos perfiles sin desbordar en móvil', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: '¿Cómo quieres entrar?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '¿Cómo quieres entrar?' })).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole('img', { name: 'Persona junto a su perro en un parque' })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Familia abrazando a su perro' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Entrar como propietario/ })).toBeVisible();
@@ -26,6 +26,7 @@ test('la entrada completa cabe sin desplazamiento vertical en pantallas habitual
   for (const viewport of [{ width: 1280, height: 720 }, { width: 375, height: 667 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/');
+    await page.locator('.role-card__photo').first().waitFor({ timeout: 10000 });
     await page.locator('.role-card__photo').evaluateAll((images) => Promise.all(images.map((image) => image.decode())));
     const height = await page.evaluate(() => ({ content: globalThis.document.documentElement.scrollHeight, viewport: globalThis.document.documentElement.clientHeight }));
     expect(height.content, `${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(height.viewport);
@@ -133,9 +134,9 @@ test('las aclaraciones visibles usan frases breves y naturales', async ({ page }
 
 test('los encabezados explican el propósito de cada vista con un tono claro', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Organiza la búsqueda de tus mascotas' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Organiza la búsqueda de tus mascotas' })).toBeVisible({ timeout: 10000 });
   await page.getByRole('button', { name: 'Entrar como propietario' }).click();
-  await expect(page.getByRole('heading', { name: 'Tus mascotas y casos de búsqueda' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tus mascotas y casos de búsqueda' })).toBeVisible({ timeout: 10000 });
   await expect(page.getByText('Consulta fichas, ubicaciones conocidas y avisos recientes.')).toBeVisible();
 
   await page.goto('/#/pets');
@@ -157,10 +158,10 @@ test('sin perfil local se vuelve directamente a elegir propietario o familiar', 
 test('un familiar entra a los datos compartidos con permisos limitados', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: '¿Cómo quieres entrar?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '¿Cómo quieres entrar?' })).toBeVisible({ timeout: 10000 });
   await page.getByRole('button', { name: /Entrar como familiar/ }).click();
 
-  await expect(page.getByRole('heading', { name: 'Círculo de confianza' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Círculo de confianza' })).toBeVisible({ timeout: 10000 });
   await expect(page.locator('.trust-circle').getByText('Carlos Torres', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Registrar mascota/ })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Activar alerta/ })).toHaveCount(0);

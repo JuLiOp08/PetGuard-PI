@@ -139,21 +139,37 @@ function renderRoleSelection() {
   </main>`;
 }
 
-function showOwnerEntryTransition() {
+function renderEntrySplash() {
+  app.innerHTML = `<main class="entry-splash" role="status" aria-live="polite">
+    <div class="entry-splash__content">
+      <span class="entry-splash__mark" aria-hidden="true">${icon('pets')}</span>
+      <p class="entry-splash__brand">PetGuard</p>
+      <h1>Cada huella cuenta</h1>
+      <p>Preparando un espacio para cuidar y encontrar a tus mascotas.</p>
+      <span class="entry-splash__progress" aria-hidden="true"></span>
+    </div>
+  </main>`;
+}
+
+function showRoleEntryTransition(role) {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+  const messages = role === 'family'
+    ? { eyebrow: 'Tu círculo te espera', title: 'Tu apoyo hace la diferencia', detail: 'Preparando las fichas compartidas y los avisos de tu círculo.' }
+    : { eyebrow: 'Tu camino comienza aquí', title: 'Bienvenido a tu espacio', detail: 'Preparando las fichas y los casos de tus mascotas.' };
   const steps = [
     [17, 81, -22], [30, 70, 18], [39, 54, -20], [53, 62, 16],
     [62, 43, -19], [75, 49, 20], [82, 29, -16], [93, 20, 17]
   ];
   const trail = steps.map(([left, top, rotation], index) =>
-    `<span class="owner-entry__paw" style="--step:${index};left:${left}%;top:${top}%;--rotation:${rotation}deg" aria-hidden="true">${icon('pets')}</span>`
+    `<span class="entry-transition__paw" style="--step:${index};left:${left}%;top:${top}%;--rotation:${rotation}deg" aria-hidden="true">${icon('pets')}</span>`
   ).join('');
   const transition = document.createElement('div');
-  transition.className = 'owner-entry';
+  transition.className = 'entry-transition';
+  transition.dataset.role = role;
   transition.setAttribute('role', 'status');
   transition.setAttribute('aria-live', 'polite');
   transition.setAttribute('tabindex', '-1');
-  transition.innerHTML = `<div class="owner-entry__content"><span class="owner-entry__brand">${icon('pets')} PetGuard</span><div class="owner-entry__trail" aria-hidden="true">${trail}</div><p class="owner-entry__eyebrow">Tu camino comienza aquí</p><h2>Bienvenido a tu espacio</h2><p>Preparando las fichas y los casos de tus mascotas.</p><span class="owner-entry__progress" aria-hidden="true"></span></div>`;
+  transition.innerHTML = `<div class="entry-transition__content"><span class="entry-transition__brand">${icon('pets')} PetGuard</span><div class="entry-transition__trail" aria-hidden="true">${trail}</div><p class="entry-transition__eyebrow">${messages.eyebrow}</p><h2>${messages.title}</h2><p>${messages.detail}</p><span class="entry-transition__progress" aria-hidden="true"></span></div>`;
   app.querySelector('.role-entry').inert = true;
   app.append(transition);
   transition.focus();
@@ -474,7 +490,7 @@ document.addEventListener('click', async (event) => {
       window.sessionStorage.setItem(VIEW_ROLE_KEY, viewerRole);
       button.disabled = true;
       button.textContent = 'Entrando…';
-      const transition = viewerRole === 'owner' ? showOwnerEntryTransition() : Promise.resolve();
+      const transition = showRoleEntryTransition(viewerRole);
       const referenceLocation = requestReferenceLocation();
       if (!state.profile && !hasStoredRecords()) {
         await importAllData(createDemoData({ alias: demoViewers.owner.alias, phone: '922 165667', email: 'ana.torres@example.com', district: 'Miraflores', alternateContact: demoViewers.family.alias, acceptsLocalStorage: true }));
@@ -625,9 +641,23 @@ window.addEventListener('hashchange', () => { render(); focusPageStart(); });
 window.addEventListener('online', () => { document.querySelector('.offline-banner')?.setAttribute('hidden', ''); });
 window.addEventListener('offline', () => { document.querySelector('.offline-banner')?.removeAttribute('hidden'); });
 async function bootstrap() {
+  const showSplash = !viewerRole && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (showSplash) renderEntrySplash();
+  const splashTime = showSplash ? new Promise((resolve) => window.setTimeout(resolve, 5000)) : Promise.resolve();
   try {
     Object.assign(state, await loadAppData());
+    await splashTime;
+    const splash = showSplash ? app.querySelector('.entry-splash') : null;
     render();
+    if (splash) {
+      app.querySelector('.role-entry').inert = true;
+      app.append(splash);
+      await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+      splash.classList.add('is-leaving');
+      await new Promise((resolve) => window.setTimeout(resolve, 400));
+      splash.remove();
+      app.querySelector('.role-entry').inert = false;
+    }
     focusPageStart();
   } catch (error) {
     app.innerHTML = `<main class="fatal"><h1>No pudimos abrir PetGuard</h1><p>${escapeHtml(error.message)}</p><button class="button button--primary" id="retry-bootstrap" type="button">Reintentar</button></main>`;
