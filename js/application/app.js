@@ -157,7 +157,7 @@ function showOwnerEntryTransition() {
   app.querySelector('.role-entry').inert = true;
   app.append(transition);
   transition.focus();
-  return new Promise((resolve) => window.setTimeout(resolve, 3000));
+  return new Promise((resolve) => window.setTimeout(resolve, 5000));
 }
 
 function profileFields(profile = {}) {
