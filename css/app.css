@@ -525,16 +525,25 @@ svg.icon { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .role-card:hover, .role-card:focus-within { border-color: #8bb9a8; box-shadow: 0 18px 36px rgba(20, 73, 62, .16); }
 .role-card__body .button { margin-top: .35rem; }
 html:has(.entry-splash), html:has(.entry-transition) { overflow: hidden; }
-.entry-splash { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 1.5rem; background: radial-gradient(circle at 50% 35%, #f2f8ee, var(--canvas) 68%); color: var(--primary-strong); text-align: center; transition: opacity .4s ease; }
+.entry-splash { position: fixed; inset: 0; z-index: 60; isolation: isolate; display: grid; place-items: center; padding: 1.5rem; overflow: hidden; background: radial-gradient(circle at 50% 35%, #f2f8ee, var(--canvas) 68%); color: var(--primary-strong); text-align: center; transition: opacity .4s ease; }
+.entry-splash::before, .entry-splash::after { content: ''; position: absolute; z-index: -1; width: min(70vw, 600px); aspect-ratio: 1; border: 1px solid rgba(15, 74, 59, .09); border-radius: 50%; pointer-events: none; }
+.entry-splash::before { top: -38%; right: -14%; }
+.entry-splash::after { bottom: -48%; left: -15%; }
 .entry-splash.is-leaving { opacity: 0; }
-.entry-splash__content { display: grid; justify-items: center; width: min(100%, 29rem); }
-.entry-splash__mark { position: relative; display: grid; place-items: center; width: 76px; height: 76px; margin-bottom: 1.2rem; border-radius: 24px; color: var(--surface); background: var(--primary); }
-.entry-splash__mark .icon { width: 44px; height: 44px; animation: entry-splash-paw 5s ease-out both; }
-.entry-splash__mark::after { content: ''; position: absolute; inset: -10px; border: 2px solid var(--primary); border-radius: 30px; opacity: 0; animation: entry-splash-halo 5s ease-out both; }
-.entry-splash__brand { margin: 0 0 .25rem; font-size: 1.1rem; font-weight: 800; }
-.entry-splash h1 { margin: 0 0 .7rem; color: var(--primary-strong); font-size: clamp(1.9rem, 7vw, 2.7rem); }
-.entry-splash__content > p:last-of-type { max-width: 25rem; margin-bottom: 1.5rem; color: var(--muted); }
-.entry-splash__progress { display: block; width: min(100%, 15rem); height: .4rem; overflow: hidden; border-radius: 999px; background: var(--primary-soft); }
+.entry-splash__content { position: relative; display: grid; justify-items: center; width: min(100%, 29rem); }
+.entry-splash__scene { position: relative; display: grid; place-items: center; width: clamp(190px, 30vw, 240px); height: clamp(190px, 30vw, 240px); margin-bottom: .5rem; }
+.entry-splash__orbit { position: absolute; inset: 8%; border: 1px dashed rgba(15, 74, 59, .3); border-radius: 50%; transform: rotate(-23deg); }
+.entry-splash__mark { position: relative; display: grid; place-items: center; width: clamp(108px, 12vw, 132px); height: clamp(108px, 12vw, 132px); border-radius: 32px; color: var(--surface); background: radial-gradient(circle at 30% 22%, #237763, var(--primary-strong) 75%); box-shadow: 0 18px 42px rgba(15, 74, 59, .23); }
+.entry-splash__mark .icon { width: 62%; height: 62%; animation: entry-splash-paw 5s ease-out both; }
+.entry-splash__mark::after { content: ''; position: absolute; inset: -10px; border: 2px solid var(--primary); border-radius: 40px; opacity: 0; animation: entry-splash-halo 5s ease-out both; }
+.entry-splash__paw { position: absolute; display: grid; place-items: center; width: 28px; height: 28px; opacity: 0; animation: entry-splash-trail .55s cubic-bezier(.18,.85,.27,1.15) forwards; }
+.entry-splash__paw .icon { width: 100%; height: 100%; fill: currentColor; stroke: none; }
+.entry-splash__paw--one { left: 9%; bottom: 24%; color: var(--primary); transform: rotate(-28deg) scale(.5); animation-delay: .45s; }
+.entry-splash__paw--two { right: 12%; top: 15%; color: #d87853; transform: rotate(24deg) scale(.5); animation-delay: 1.3s; }
+.entry-splash__paw--three { right: 6%; bottom: 19%; color: var(--primary); transform: rotate(18deg) scale(.5); animation-delay: 2.15s; }
+.entry-splash__brand { margin: 0 0 .25rem; font-size: 1.35rem; font-weight: 800; }
+.entry-splash h1 { margin: 0 0 1.4rem; color: var(--primary-strong); font-size: clamp(1.9rem, 7vw, 2.7rem); }
+.entry-splash__progress { display: block; width: min(100%, 17rem); height: .45rem; overflow: hidden; border-radius: 999px; background: var(--primary-soft); }
 .entry-splash__progress::after { content: ''; display: block; width: 100%; height: 100%; border-radius: inherit; background: var(--primary); transform: scaleX(0); transform-origin: left; animation: entry-progress 5s linear forwards; }
 .entry-transition { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 1.5rem; background: radial-gradient(circle at 50% 38%, #f2f8ee, var(--canvas) 68%); text-align: center; }
 .entry-transition__content { width: min(100%, 31rem); }
@@ -561,15 +570,19 @@ html:has(.entry-splash), html:has(.entry-transition) { overflow: hidden; }
   12%, 66% { opacity: .65; }
   30%, 100% { opacity: 0; transform: scale(1.25); }
 }
+@keyframes entry-splash-trail { to { opacity: 1; transform: rotate(0) scale(1); } }
 @keyframes entry-paw-appear { to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rotation)) scale(1); } }
 @keyframes entry-progress { to { transform: scaleX(1); } }
 @media (max-height: 450px) {
   .entry-transition__trail { height: 7rem; margin: .35rem auto .55rem; }
   .entry-transition h2 { font-size: 1.6rem; }
   .entry-transition__content > p:last-of-type { margin-bottom: .7rem; font-size: .85rem; }
-  .entry-splash__mark { width: 58px; height: 58px; margin-bottom: .65rem; border-radius: 18px; }
-  .entry-splash__mark .icon { width: 34px; height: 34px; }
-  .entry-splash__content > p:last-of-type { margin-bottom: .8rem; }
+  .entry-splash__scene { width: 156px; height: 156px; margin-bottom: .25rem; }
+  .entry-splash__mark { width: 88px; height: 88px; border-radius: 25px; }
+  .entry-splash__mark::after { border-radius: 32px; }
+  .entry-splash__paw { width: 20px; height: 20px; }
+  .entry-splash__brand { font-size: 1.1rem; }
+  .entry-splash h1 { margin-bottom: .8rem; font-size: 1.8rem; }
 }
 .trust-circle { margin-bottom: 1rem; }
 .trust-circle__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: .7rem; }

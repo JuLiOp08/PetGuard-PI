@@ -6,6 +6,10 @@ test('la carga de cinco segundos da paso a la selección de perfil', async ({ pa
   const splash = page.locator('.entry-splash');
   await expect(splash).toBeVisible();
   await expect(splash.getByRole('heading', { name: 'Cada huella cuenta' })).toBeVisible();
+  await expect(splash.getByText('Preparando un espacio para cuidar y encontrar a tus mascotas.')).toHaveCount(0);
+  await expect(splash.locator('.entry-splash__paw')).toHaveCount(3);
+  const mark = await splash.locator('.entry-splash__mark').boundingBox();
+  expect(mark.width).toBeGreaterThanOrEqual(page.viewportSize().height <= 450 ? 88 : 108);
   await expect(page.getByRole('button', { name: /Entrar como propietario/ })).toHaveCount(0);
   const progressDuration = await splash.locator('.entry-splash__progress').evaluate((bar) => globalThis.getComputedStyle(bar, '::after').animationDuration);
   expect(progressDuration).toBe('5s');

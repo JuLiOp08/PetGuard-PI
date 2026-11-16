@@ -142,10 +142,16 @@ function renderRoleSelection() {
 function renderEntrySplash() {
   app.innerHTML = `<main class="entry-splash" role="status" aria-live="polite">
     <div class="entry-splash__content">
-      <span class="entry-splash__mark" aria-hidden="true">${icon('pets')}</span>
+      <div class="entry-splash__scene" aria-hidden="true">
+        <span class="entry-splash__orbit"></span>
+        <span class="entry-splash__paw entry-splash__paw--one">${icon('pets')}</span>
+        <span class="entry-splash__paw entry-splash__paw--two">${icon('pets')}</span>
+        <span class="entry-splash__paw entry-splash__paw--three">${icon('pets')}</span>
+        <span class="entry-splash__mark">${icon('pets')}</span>
+      </div>
       <p class="entry-splash__brand">PetGuard</p>
       <h1>Cada huella cuenta</h1>
-      <p>Preparando un espacio para cuidar y encontrar a tus mascotas.</p>
+      <span class="sr-only">Cargando PetGuard</span>
       <span class="entry-splash__progress" aria-hidden="true"></span>
     </div>
   </main>`;
